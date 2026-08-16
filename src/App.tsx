@@ -229,7 +229,7 @@ function SessionPage({ id, accountNumber, folders, refreshFolders }: SessionPage
           {status && <p className="form-status">{status}</p>}
         </div>
       </div>
-      <KaraokePlayer entry={entry} />
+      <KaraokePlayer entry={entry} key={entry.id} />
     </section>
   );
 }
