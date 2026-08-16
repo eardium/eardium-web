@@ -1,0 +1,416 @@
+[
+  {
+    "id": "catalog-exams-essay-energetic-004",
+    "title": "Essay Exam Under Time Pressure",
+    "category": "exams",
+    "vibe": "energetic",
+    "duration_seconds": 273,
+    "audio_filename": "exams-essay-energetic-004.mp3",
+    "bytes": 4955786
+  },
+  {
+    "id": "catalog-exams-finalpush-energetic-007",
+    "title": "Final Push — Last 30 Minutes",
+    "category": "exams",
+    "vibe": "energetic",
+    "duration_seconds": 269,
+    "audio_filename": "exams-finalpush-energetic-007.mp3",
+    "bytes": 5080337
+  },
+  {
+    "id": "catalog-exams-general-calm-000",
+    "title": "Clear Mind",
+    "category": "exams",
+    "vibe": "calm",
+    "duration_seconds": 170,
+    "audio_filename": "exams-general-calm-000.mp3",
+    "bytes": 3492511
+  },
+  {
+    "id": "catalog-exams-hardquestion-calm-003",
+    "title": "Hitting a Hard Question",
+    "category": "exams",
+    "vibe": "calm",
+    "duration_seconds": 280,
+    "audio_filename": "exams-hardquestion-calm-003.mp3",
+    "bytes": 4626434
+  },
+  {
+    "id": "catalog-exams-morning-calm-001",
+    "title": "Exam Morning — Walking In",
+    "category": "exams",
+    "vibe": "calm",
+    "duration_seconds": 286,
+    "audio_filename": "exams-morning-calm-001.mp3",
+    "bytes": 4808664
+  },
+  {
+    "id": "catalog-exams-nightbefore-calm-006",
+    "title": "Night Before the Exam",
+    "category": "exams",
+    "vibe": "calm",
+    "duration_seconds": 293,
+    "audio_filename": "exams-nightbefore-calm-006.mp3",
+    "bytes": 4979609
+  },
+  {
+    "id": "catalog-exams-opening-calm-002",
+    "title": "Opening the Exam",
+    "category": "exams",
+    "vibe": "calm",
+    "duration_seconds": 285,
+    "audio_filename": "exams-opening-calm-002.mp3",
+    "bytes": 4870104
+  },
+  {
+    "id": "catalog-exams-oral-calm-005",
+    "title": "Oral Exam / Viva",
+    "category": "exams",
+    "vibe": "calm",
+    "duration_seconds": 323,
+    "audio_filename": "exams-oral-calm-005.mp3",
+    "bytes": 5853144
+  },
+  {
+    "id": "catalog-foundations-first-calm-002",
+    "title": "Your First Rehearsal",
+    "category": "foundations",
+    "vibe": "calm",
+    "duration_seconds": 169,
+    "audio_filename": "foundations-first-calm-002.mp3",
+    "bytes": 3435250
+  },
+  {
+    "id": "catalog-foundations-how-calm-001",
+    "title": "How This Works",
+    "category": "foundations",
+    "vibe": "calm",
+    "duration_seconds": 126,
+    "audio_filename": "foundations-how-calm-001.mp3",
+    "bytes": 2450120
+  },
+  {
+    "id": "catalog-foundations-practice-calm-003",
+    "title": "Building Your Practice",
+    "category": "foundations",
+    "vibe": "calm",
+    "duration_seconds": 130,
+    "audio_filename": "foundations-practice-calm-003.mp3",
+    "bytes": 2465585
+  },
+  {
+    "id": "catalog-gym-bench-calm-005",
+    "title": "Bench Press Working Sets",
+    "category": "gym",
+    "vibe": "calm",
+    "duration_seconds": 333,
+    "audio_filename": "gym-bench-calm-005.mp3",
+    "bytes": 5711456
+  },
+  {
+    "id": "catalog-gym-comeback-calm-008",
+    "title": "First Day Back After Injury",
+    "category": "gym",
+    "vibe": "calm",
+    "duration_seconds": 355,
+    "audio_filename": "gym-comeback-calm-008.mp3",
+    "bytes": 5767044
+  },
+  {
+    "id": "catalog-gym-competition-energetic-006",
+    "title": "Competition Day — Powerlifting",
+    "category": "gym",
+    "vibe": "energetic",
+    "duration_seconds": 417,
+    "audio_filename": "gym-competition-energetic-006.mp3",
+    "bytes": 6873382
+  },
+  {
+    "id": "catalog-gym-deadlift-energetic-003",
+    "title": "Deadlift PR Attempt",
+    "category": "gym",
+    "vibe": "energetic",
+    "duration_seconds": 279,
+    "audio_filename": "gym-deadlift-energetic-003.mp3",
+    "bytes": 4800305
+  },
+  {
+    "id": "catalog-gym-deadlift-lfg-004",
+    "title": "Deadlift PR Attempt",
+    "category": "gym",
+    "vibe": "lfg",
+    "duration_seconds": 210,
+    "audio_filename": "gym-deadlift-lfg-004.mp3",
+    "bytes": 4118195
+  },
+  {
+    "id": "catalog-gym-general-calm-000",
+    "title": "Before You Train",
+    "category": "gym",
+    "vibe": "calm",
+    "duration_seconds": 163,
+    "audio_filename": "gym-general-calm-000.mp3",
+    "bytes": 3175279
+  },
+  {
+    "id": "catalog-gym-olympic-calm-007",
+    "title": "Olympic Lifts — Clean & Jerk",
+    "category": "gym",
+    "vibe": "calm",
+    "duration_seconds": 377,
+    "audio_filename": "gym-olympic-calm-007.mp3",
+    "bytes": 6393565
+  },
+  {
+    "id": "catalog-gym-squat-calm-001",
+    "title": "Heavy Squat Day",
+    "category": "gym",
+    "vibe": "calm",
+    "duration_seconds": 328,
+    "audio_filename": "gym-squat-calm-001.mp3",
+    "bytes": 5643746
+  },
+  {
+    "id": "catalog-gym-squat-energetic-002",
+    "title": "Heavy Squat Day",
+    "category": "gym",
+    "vibe": "energetic",
+    "duration_seconds": 266,
+    "audio_filename": "gym-squat-energetic-002.mp3",
+    "bytes": 4924439
+  },
+  {
+    "id": "catalog-interviews-general-calm-000",
+    "title": "Grounded Confidence",
+    "category": "interviews",
+    "vibe": "calm",
+    "duration_seconds": 166,
+    "audio_filename": "interviews-general-calm-000.mp3",
+    "bytes": 3334522
+  },
+  {
+    "id": "catalog-interviews-hardest-calm-003",
+    "title": "The Hardest Question",
+    "category": "interviews",
+    "vibe": "calm",
+    "duration_seconds": 270,
+    "audio_filename": "interviews-hardest-calm-003.mp3",
+    "bytes": 4915662
+  },
+  {
+    "id": "catalog-interviews-postinterview-calm-005",
+    "title": "Carrying Confidence Out",
+    "category": "interviews",
+    "vibe": "calm",
+    "duration_seconds": 285,
+    "audio_filename": "interviews-postinterview-calm-005.mp3",
+    "bytes": 5017226
+  },
+  {
+    "id": "catalog-interviews-technical-calm-004",
+    "title": "Technical Interview",
+    "category": "interviews",
+    "vibe": "calm",
+    "duration_seconds": 280,
+    "audio_filename": "interviews-technical-calm-004.mp3",
+    "bytes": 4748896
+  },
+  {
+    "id": "catalog-interviews-tellme-energetic-002",
+    "title": "\"Tell Me About Yourself\"",
+    "category": "interviews",
+    "vibe": "energetic",
+    "duration_seconds": 230,
+    "audio_filename": "interviews-tellme-energetic-002.mp3",
+    "bytes": 4325503
+  },
+  {
+    "id": "catalog-interviews-walkin-calm-001",
+    "title": "Walking Into the Interview Room",
+    "category": "interviews",
+    "vibe": "calm",
+    "duration_seconds": 283,
+    "audio_filename": "interviews-walkin-calm-001.mp3",
+    "bytes": 4981699
+  },
+  {
+    "id": "catalog-running-comeback-calm-006",
+    "title": "Coming Back from a Bad Race",
+    "category": "running",
+    "vibe": "calm",
+    "duration_seconds": 334,
+    "audio_filename": "running-comeback-calm-006.mp3",
+    "bytes": 6189183
+  },
+  {
+    "id": "catalog-running-general-calm-000",
+    "title": "Before You Run",
+    "category": "running",
+    "vibe": "calm",
+    "duration_seconds": 167,
+    "audio_filename": "running-general-calm-000.mp3",
+    "bytes": 3257617
+  },
+  {
+    "id": "catalog-running-hills-energetic-004",
+    "title": "Hill Repeats",
+    "category": "running",
+    "vibe": "energetic",
+    "duration_seconds": 262,
+    "audio_filename": "running-hills-energetic-004.mp3",
+    "bytes": 4873866
+  },
+  {
+    "id": "catalog-running-kick-lfg-005",
+    "title": "Finishing Kick — Last 400m",
+    "category": "running",
+    "vibe": "lfg",
+    "duration_seconds": 164,
+    "audio_filename": "running-kick-lfg-005.mp3",
+    "bytes": 3549771
+  },
+  {
+    "id": "catalog-running-morning-calm-003",
+    "title": "Race Morning Routine",
+    "category": "running",
+    "vibe": "calm",
+    "duration_seconds": 287,
+    "audio_filename": "running-morning-calm-003.mp3",
+    "bytes": 5347413
+  },
+  {
+    "id": "catalog-running-racestart-energetic-002",
+    "title": "Race Start — 5K/10K",
+    "category": "running",
+    "vibe": "energetic",
+    "duration_seconds": 265,
+    "audio_filename": "running-racestart-energetic-002.mp3",
+    "bytes": 5359952
+  },
+  {
+    "id": "catalog-running-wall-calm-001",
+    "title": "Marathon Miles 20-22 — The Wall",
+    "category": "running",
+    "vibe": "calm",
+    "duration_seconds": 431,
+    "audio_filename": "running-wall-calm-001.mp3",
+    "bytes": 8038653
+  },
+  {
+    "id": "catalog-speaking-allhands-energetic-005",
+    "title": "All-Hands Company Update",
+    "category": "public_speaking",
+    "vibe": "energetic",
+    "duration_seconds": 279,
+    "audio_filename": "speaking-allhands-energetic-005.mp3",
+    "bytes": 5040213
+  },
+  {
+    "id": "catalog-speaking-board-calm-004",
+    "title": "Board Presentation",
+    "category": "public_speaking",
+    "vibe": "calm",
+    "duration_seconds": 325,
+    "audio_filename": "speaking-board-calm-004.mp3",
+    "bytes": 5452739
+  },
+  {
+    "id": "catalog-speaking-conference-calm-001",
+    "title": "Conference Presentation",
+    "category": "public_speaking",
+    "vibe": "calm",
+    "duration_seconds": 315,
+    "audio_filename": "speaking-conference-calm-001.mp3",
+    "bytes": 5641657
+  },
+  {
+    "id": "catalog-speaking-general-calm-000",
+    "title": "Before You Speak",
+    "category": "public_speaking",
+    "vibe": "calm",
+    "duration_seconds": 161,
+    "audio_filename": "speaking-general-calm-000.mp3",
+    "bytes": 3113839
+  },
+  {
+    "id": "catalog-speaking-meeting-energetic-002",
+    "title": "Team Meeting — Leading",
+    "category": "public_speaking",
+    "vibe": "energetic",
+    "duration_seconds": 271,
+    "audio_filename": "speaking-meeting-energetic-002.mp3",
+    "bytes": 4894764
+  },
+  {
+    "id": "catalog-speaking-qa-calm-003",
+    "title": "Q&A Handling — Tough Questions",
+    "category": "public_speaking",
+    "vibe": "calm",
+    "duration_seconds": 320,
+    "audio_filename": "speaking-qa-calm-003.mp3",
+    "bytes": 5307289
+  },
+  {
+    "id": "catalog-speaking-wedding-calm-006",
+    "title": "Wedding Toast",
+    "category": "public_speaking",
+    "vibe": "calm",
+    "duration_seconds": 337,
+    "audio_filename": "speaking-wedding-calm-006.mp3",
+    "bytes": 5382104
+  },
+  {
+    "id": "catalog-tennis-breakpoint-calm-004",
+    "title": "Break Point — Serving",
+    "category": "tennis",
+    "vibe": "calm",
+    "duration_seconds": 287,
+    "audio_filename": "tennis-breakpoint-calm-004.mp3",
+    "bytes": 4899779
+  },
+  {
+    "id": "catalog-tennis-comeback-energetic-003",
+    "title": "Down a Set, Coming Back",
+    "category": "tennis",
+    "vibe": "energetic",
+    "duration_seconds": 263,
+    "audio_filename": "tennis-comeback-energetic-003.mp3",
+    "bytes": 4319652
+  },
+  {
+    "id": "catalog-tennis-general-calm-000",
+    "title": "Court Presence",
+    "category": "tennis",
+    "vibe": "calm",
+    "duration_seconds": 172,
+    "audio_filename": "tennis-general-calm-000.mp3",
+    "bytes": 3484569
+  },
+  {
+    "id": "catalog-tennis-return-energetic-002",
+    "title": "Returning a Fast Serve",
+    "category": "tennis",
+    "vibe": "energetic",
+    "duration_seconds": 245,
+    "audio_filename": "tennis-return-energetic-002.mp3",
+    "bytes": 4084759
+  },
+  {
+    "id": "catalog-tennis-serve-calm-001",
+    "title": "Match Day Serve",
+    "category": "tennis",
+    "vibe": "calm",
+    "duration_seconds": 290,
+    "audio_filename": "tennis-serve-calm-001.mp3",
+    "bytes": 5026421
+  },
+  {
+    "id": "catalog-tennis-tiebreak-energetic-005",
+    "title": "Tiebreak",
+    "category": "tennis",
+    "vibe": "energetic",
+    "duration_seconds": 272,
+    "audio_filename": "tennis-tiebreak-energetic-005.mp3",
+    "bytes": 4950352
+  }
+]

@@ -1,0 +1,23 @@
+# Supabase per-function configuration.
+#
+# All functions in this standalone project opt out of platform JWT verification:
+# number-only web accounts are not Supabase Auth users (the account number is
+# the credential, checked in-function), and `feed` must be publicly GET-able
+# by podcast apps.
+#
+# If the local CLI version predates per-function config, deploy the web
+# functions with:  npx supabase functions deploy <name> --no-verify-jwt
+
+project_id = "eardium-web"
+
+[functions.web-account]
+verify_jwt = false
+
+[functions.web-folders]
+verify_jwt = false
+
+[functions.web-waitlist]
+verify_jwt = false
+
+[functions.feed]
+verify_jwt = false
