@@ -22,14 +22,16 @@ CLOUDFLARE_ACCOUNT_ID=<account id>
 CLOUDFLARE_EMAIL_API_TOKEN=<account-owned Email Sending: Edit token>
 EMAIL_FROM_ADDRESS=notify@eardium.com
 EMAIL_FROM_NAME=Eardium
-EMAIL_REPLY_TO_ADDRESS=<receiving Google Workspace alias>
+EMAIL_REPLY_TO_ADDRESS=<a mailbox that can actually receive; omit if none>
 ```
 
 Supabase supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to functions. No secret is exposed to the browser.
 
 ## 2. Cloudflare Email Sending
 
-Onboard `eardium.com` under Email Sending only. It creates authentication and bounce records on the separate `cf-bounce` namespace. Keep Google Workspace root MX/SPF and `google._domainkey` for inbound aliases; do not enable Cloudflare Email Routing. Keep message preview disabled and start DMARC in monitoring mode while both senders are verified.
+Onboard `eardium.com` under Email Sending only (dashboard: **Compute → Email Service → Email Sending → Onboard Domain**). It creates authentication and bounce records on the separate `cf-bounce` namespace. Do not enable Cloudflare Email Routing — the two are managed independently. Keep message preview disabled and start DMARC in monitoring mode.
+
+**Verified 2026-08-21:** `eardium.com` is on Cloudflare nameservers, but the zone has **no MX and no SPF record** — there is no existing Google Workspace inbound routing to preserve, and no `@eardium.com` address can currently receive mail. Onboarding is therefore unobstructed, but `EMAIL_REPLY_TO_ADDRESS` must point at a real mailbox on another domain (or be left unset) until MX records are added.
 
 ## 3. GitHub Pages variables
 

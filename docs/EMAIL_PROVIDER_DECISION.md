@@ -14,7 +14,8 @@ explicitly requested customisation-availability notification.
 
 - Email Sending is in public beta and requires the account-level Workers Paid plan. The `eardium.com` DNS zone itself can remain on Cloudflare Free.
 - The sending domain must use Cloudflare DNS and be onboarded under Email Service. P1 will use `eardium.com`; the sender address remains deployment configuration (`EMAIL_FROM_ADDRESS`).
-- Existing inbound mail remains on the Geldchen Google Workspace account, where `eardium.com` is a user-alias domain. Keep Google's root MX/SPF and `google._domainkey` DKIM records. Do **not** enable Cloudflare Email Routing: Email Sending coexists by using separate `cf-bounce` records.
+- **Verified 2026-08-21: the live `eardium.com` zone has no MX and no SPF record.** Nameservers are Cloudflare (`corey`/`paloma.ns.cloudflare.com`); the only mail-related record is a leftover `google._domainkey` DKIM TXT, plus a `google-site-verification` TXT. There is therefore no Google Workspace inbound routing on this domain to preserve, and **nothing at `@eardium.com` can receive mail today**. Two consequences: onboarding has no conflicting records to work around, and `EMAIL_REPLY_TO_ADDRESS` must not be an `@eardium.com` address until MX records exist, or replies will bounce.
+- Do **not** enable Cloudflare Email Routing: Email Sending coexists by using separate `cf-bounce` records, and the two are managed independently (removing one does not affect the other).
 - The service is [transactional-only](https://developers.cloudflare.com/email-service/reference/faq/). The later message must remain the one notification the person explicitly requested, not a newsletter or promotional campaign. If the scope grows into marketing, use a marketing-capable provider with unsubscribe/list management.
 - Cloudflare's event analytics include sender, recipient, subject, message id, and errors for [31 days](https://developers.cloudflare.com/email-service/observability/metrics-analytics/). Message preview must remain off; if enabled, it stores sent content for about seven days.
 - A narrow account-owned token with only `Email Sending: Edit` is stored as a Supabase secret. It can send from every onboarded sending domain in that Cloudflare account, so it must not be exposed to the browser or logs.
@@ -41,5 +42,13 @@ EMAIL_REPLY_TO_ADDRESS=<an existing Google Workspace @eardium.com alias>
 
 Do not commit any of these values. Set them with `supabase secrets set` after
 `eardium.com` is active in Cloudflare DNS and onboarded for Email Sending.
-If `notify@eardium.com` is not a receiving alias, either create it in Google
-Workspace or set `EMAIL_REPLY_TO_ADDRESS` so replies reach a real mailbox.
+`notify@eardium.com` is a send-only address: the zone has no MX, so it cannot
+receive. Set `EMAIL_REPLY_TO_ADDRESS` to a mailbox that actually exists on
+another domain, or add Google Workspace MX records to `eardium.com` first. Leaving
+it unset is also valid — the adapter omits `reply_to` entirely when the variable
+is absent, and replies then go to the unmonitored From address.
+
+The REST payload shape was verified against the current docs on 2026-08-21:
+named addresses use `{ "address": ..., "name": ... }` and the reply field is
+`reply_to`. (The `{ "email": ... }` / `replyTo` spelling belongs to the Workers
+binding, which this code does not use.)
