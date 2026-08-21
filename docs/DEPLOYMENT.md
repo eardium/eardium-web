@@ -2,7 +2,19 @@
 
 ## 1. Dedicated Supabase project
 
-Create and link a project owned by Eardium Web, then:
+**Created 2026-08-21: `eardium-web`, ref `awiqbatbdkgxyulqbvfo`, region `eu-central-1`
+(Frankfurt), org `Geldchen`, Free tier.** Migration applied and all four functions
+deployed. Functions base URL: `https://awiqbatbdkgxyulqbvfo.supabase.co/functions/v1`.
+
+The public catalog-audio bucket remains the separate, pre-existing project
+`xfqvqnsgwceitysdrqdn` — a read-only external origin, not part of this project.
+
+Note `WEB_ACCOUNT_HASH_KEY` is unrecoverable: every account number's lookup hash
+derives from it, and accounts carry no email or password, so losing or rotating it
+strands every existing account with no recovery path for the user. Keep an
+independent copy outside Supabase.
+
+To recreate from scratch, create and link a project owned by Eardium Web, then:
 
 ```bash
 npx supabase db push
@@ -85,5 +97,18 @@ Set `CONTENT_SAFETY_APPROVED` only after the human disposition and audio gates b
   37 MP3s. Re-run `npm run manifest` against the public audio origin only when
   catalog audio actually changes.
 - Run `npm run check` and Deno-check all four functions.
+- **Backend smoke suite passed 2026-08-21 (22/22)**: account create/login/401, folders
+  denied without a credential, `add_item` accepted for a shipped id and 400 for both a
+  bogus id and a content-safety-excluded id (the exclusion is enforced server-side via
+  the manifest, not only in the UI), feed 200 `application/rss+xml` with
+  `Cache-Control: private, no-store`, `X-Robots-Tag: noindex`, true enclosure byte
+  length, `itunes:block`/`itunes:type serial`, token rotation invalidating the old URL
+  (404) while the new one serves (200), waitlist join 202 with malformed addresses
+  rejected, and `delete_account` killing both the feed (404) and login (401).
+- **Poll retention verified**: `first_polled_at`/`last_polled_at` start null, are both
+  stamped on the first poll, and on a later poll `first_polled_at` stays fixed while
+  `last_polled_at` advances — the Gate A metric works.
+- **RLS deny-all verified**: the anon key reads `[]` from `web_folders` and
+  `web_waitlist`.
 - Smoke-test account creation/login/deletion, folder ownership, token rotation, exact QR payload, podcast-app handoff, feed XML/byte ranges, poll timestamps, and double opt-in.
 - Add login rate limiting and the documented inactivity-expiry rule before sharing with testers.

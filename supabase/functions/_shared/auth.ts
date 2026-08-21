@@ -2,7 +2,7 @@
  * the service-role credential; number-account ownership is enforced in the
  * web-auth and web-folders modules. */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js@2.95.3';
 
 export function getAdminClient() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
