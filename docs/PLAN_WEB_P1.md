@@ -12,13 +12,13 @@ A web wedge removes all three. The phone already has a player — the podcast ap
 
 - No install. No review cycle — content and copy ship in minutes.
 - Delivery is RSS, not something we build.
-- The catalog already exists (46 sessions: scripts, ElevenLabs audio, whisper timestamps, public bucket). New catalog content becomes available to browse immediately, and **arrives in a subscriber's podcast app after they add it to a subscribed folder** — content is never injected into an existing user's feed without an explicit add. The web page gives the product a linkable surface it currently doesn't have.
+- The catalog already exists (37 shipped sessions after the content-safety gate excluded 9 of the original 46: scripts, ElevenLabs audio, whisper timestamps, public bucket). New catalog content becomes available to browse immediately, and **arrives in a subscriber's podcast app after they add it to a subscribed folder** — content is never injected into an existing user's feed without an explicit add. The web page gives the product a linkable surface it currently doesn't have.
 
 Validation instrument + acquisition surface, not an app replacement. Full catalog exposed free and paid alike (content headed for deprecation).
 
 ## What ships
 
-1. **Catalog + player** — browse 46 sessions by category; `<audio>` player with karaoke subtitles (app's `parseScript` + whisper sidecars); coming-soon entries as dimmed cards.
+1. **Catalog + player** — browse 37 sessions by category; `<audio>` player with karaoke subtitles (app's `parseScript` + whisper sidecars); coming-soon entries as dimmed cards.
 2. **Folders** — account holds folders = named sets of sessions; **each folder is an RSS feed** at a private capability URL. Adding a session to a subscribed folder is the only way anything enters a feed. Changes to suggested/default folder definitions affect newly created accounts only — never existing users' feeds.
 3. **Suggested folders** — pre-defined empty "Coming soon" folders (Race Week / Interview Crunch / Daily Foundations) signaling planned content.
 4. **Number-only accounts** — 16-digit number generated server-side, shown once; no email/password. Plus **delete account** (cascades folders/items, kills every feed) and **per-folder feed-token rotation** (for a leaked link).
@@ -29,7 +29,7 @@ Validation instrument + acquisition surface, not an app replacement. Full catalo
 
 ## Content safety gate (blocks sharing the staging URL)
 
-Committed guide **`docs/CONTENT_SAFETY_REVIEW.md`**; all 46 shipped scripts, titles, and scenarios reviewed against it before any tester gets the URL. The brief:
+Committed guide **`docs/CONTENT_SAFETY_REVIEW.md`**; all 46 candidate scripts, titles, and scenarios reviewed against it before any tester gets the URL. **Resolution: every entry with a flagged passage was excluded rather than rewritten** — 9 removed, 37 ship. The brief:
 
 - Flag instructions to ignore, suppress, relabel, or push through pain or unusual physical signals; flag language asserting a sensation is harmless, "only effort," or safe to continue through.
 - For injury/return-to-sport content: never override a clinician or recovery plan; preserve the athlete's option to stop, slow, or reassess.
@@ -98,10 +98,10 @@ This repository owns the Vite + React + TS frontend, hash routing, GitHub Pages 
 - **A1** Pure committed catalog snapshot under `src/shared/`, with no Expo, React Native, or native-repository import.
 - **A2** `supabase/migrations/20260816000000_web.sql` — first migration in a dedicated web project; deny-all RLS for `web_accounts`, `web_folders` (+ `first_polled_at`/`last_polled_at`), `web_folder_items`, and unlinked `web_waitlist`. The public audio origin is configuration, not a web-project bucket.
 - **A3** `supabase/config.toml` (new): `verify_jwt = false` for the four web functions.
-- **A4** `scripts/generate-web-manifest.ts`: builds `supabase/functions/_shared/catalog-manifest.json` from catalog data + HEAD byte sizes. True sizes for all 46 MP3s are committed. The feed still fails loud with 503 if a future metadata-only manifest (`bytes: 0`) is deployed, never serving a wrong `length`.
+- **A4** `scripts/generate-web-manifest.ts`: builds `supabase/functions/_shared/catalog-manifest.json` from catalog data + HEAD byte sizes. True sizes for all 37 shipped MP3s are committed (the 9 excluded entries were dropped from the manifest; surviving sizes are unchanged). The feed still fails loud with 503 if a future metadata-only manifest (`bytes: 0`) is deployed, never serving a wrong `length`.
 - **A5** Edge functions (house skeleton; reuse `errorResponse`, `getAdminClient`, `AuthError`): `_shared/cors-web.ts`, `_shared/web-auth.ts`, `_shared/email.ts` (Cloudflare Email Service REST adapter plus `'none'` local stub); `web-account` (`create`/`login`/`delete_account`), `web-folders` (`list`/`create_folder`≤20/`rename_folder`/`delete_folder`/`add_item` manifest-validated ≤100/`remove_item`/`rotate_token`), `web-waitlist` (`join`, GET `confirm`; uniform join response, expiring single-use token, resend cooldown), `feed` (GET; poll-timestamp UPDATE; `application/rss+xml`; `Cache-Control: private, no-store`; `X-Robots-Tag: noindex`). Provider decision and privacy trade-offs: `docs/EMAIL_PROVIDER_DECISION.md`.
 - **A6** Feed XML: RSS 2.0 + itunes + atom:self; `itunes:block`; serial; episode numbers; `pubDate = added_at`; escapeXml.
-- **A7** `docs/CONTENT_SAFETY_REVIEW.md` + findings for all 46 scripts (Wall first) → `docs/CONTENT_SAFETY_FINDINGS.md`.
+- **A7** `docs/CONTENT_SAFETY_REVIEW.md` + findings for all 46 candidate scripts (Wall first) → `docs/CONTENT_SAFETY_FINDINGS.md`; flagged entries excluded from the shipped catalog.
 - **A8** Standalone architecture/deployment docs, web build/tests, and Deno checks.
 
 ## Phase B — Backend deploy (manual)
@@ -120,16 +120,16 @@ See the launch checklist below.
 
 1. Preflight curls pass (from a normal network). Repo A lint + tests + CI green.
 2. Backend smoke: create/login/401; add_item ok + bogus 400; delete_account → feeds 404; rotate_token → old 404, new 200; feed 200 rss+xml with `private, no-store`, position order, true lengths; poll updates `first/last_polled_at`; waitlist join → pending row + one confirmation email, repeat join inside five minutes sends nothing, confirm → `confirmed_at`, reused/expired tokens fail. XML through a podcast validator.
-3. Content gate: findings table for all 46; Wall case dispositioned; zero unresolved high-severity before any tester gets the URL; audio spot-check on rewrites.
+3. Content gate: findings table for all 46 candidates; Wall case dispositioned (excluded); zero unresolved high-severity before any tester gets the URL. No rewrites shipped, so no audio re-synthesis or spot-check is outstanding.
 4. Pages live; noindex + no-referrer present; `#/subscribe/<token>` works with no account.
 5. E2E: subtitles track whisper timing (calm + lfg; offline → estimated fallback); account create → persist → logout → login; 3-session folder → subscribe in a real podcast app → order/artwork/playback; add 4th → arrives; phone scans desktop QR → subscribe route → subscribes; poll timestamps advancing.
 
 ## Launch checklist (manual actions once connected)
 
-1. **Manifest complete (2026-08-16):** all 46 public MP3s returned true byte sizes and the generated `catalog-manifest.json` is committed.
+1. **Manifest complete (2026-08-16):** all 46 public MP3s returned true byte sizes; the committed `catalog-manifest.json` now carries the 37 shipped entries.
 2. **Preflight complete (2026-08-16):** timestamp JSON and MP3 return `access-control-allow-origin: *`; MP3 returns `content-length` and `accept-ranges: bytes`.
 3. **Create/link the dedicated web Supabase project, then apply DB + deploy functions**: `npx supabase db push` · `npx supabase functions deploy web-account web-folders web-waitlist feed`.
-4. **Approve content-safety dispositions** in `docs/CONTENT_SAFETY_FINDINGS.md` (PR review); apply any rewrites/exclusions + audio spot-check.
+4. **Content-safety dispositions applied (2026-08-21):** every flagged entry excluded from the shipped catalog; no rewrites, so no re-synthesis. Confirm the exclusion set in PR review, then set `CONTENT_SAFETY_APPROVED=true`.
 5. **eardium-web repo**: Settings → Pages → Source = **GitHub Actions**; merge its PR → site deploys.
 6. **Activate Cloudflare email**: keep Google Workspace's root MX/SPF/DKIM for inbound aliases; onboard `eardium.com` under Email Service → Email Sending only (never Routing), keep message preview off, create an account-owned token with only `Email Sending: Edit`, then set the provider configuration listed in `docs/EMAIL_PROVIDER_DECISION.md`.
 7. Mark native-app PR #68 superseded after confirming this repository contains the complete web slice.

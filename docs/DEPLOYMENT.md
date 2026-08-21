@@ -45,9 +45,13 @@ Set `CONTENT_SAFETY_APPROVED` only after the human disposition and audio gates b
 
 ## 4. Before merge/deploy
 
-- Human-approve every catalog safety disposition and resolve the HIGH finding.
-- Re-synthesise changed scripts and timestamp sidecars; spot-check the rendered audio.
-- Run `npm run manifest` against the public audio origin and commit true byte sizes.
+- Confirm the content-safety exclusion set in PR review. Applied 2026-08-21: the
+  nine entries with flagged script text were removed (catalog 46 → 37) and the HIGH
+  finding is resolved by exclusion. No rewrites shipped, so there is no
+  re-synthesis or audio spot-check outstanding.
+- The manifest was filtered in place, keeping the true byte sizes of the surviving
+  37 MP3s. Re-run `npm run manifest` against the public audio origin only when
+  catalog audio actually changes.
 - Run `npm run check` and Deno-check all four functions.
 - Smoke-test account creation/login/deletion, folder ownership, token rotation, exact QR payload, podcast-app handoff, feed XML/byte ranges, poll timestamps, and double opt-in.
 - Add login rate limiting and the documented inactivity-expiry rule before sharing with testers.

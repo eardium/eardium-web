@@ -9,15 +9,6 @@
     "bytes": 4955786
   },
   {
-    "id": "catalog-exams-finalpush-energetic-007",
-    "title": "Final Push — Last 30 Minutes",
-    "category": "exams",
-    "vibe": "energetic",
-    "duration_seconds": 269,
-    "audio_filename": "exams-finalpush-energetic-007.mp3",
-    "bytes": 5080337
-  },
-  {
     "id": "catalog-exams-general-calm-000",
     "title": "Clear Mind",
     "category": "exams",
@@ -37,21 +28,12 @@
   },
   {
     "id": "catalog-exams-morning-calm-001",
-    "title": "Exam Morning — Walking In",
+    "title": "Exam Morning \u2014 Walking In",
     "category": "exams",
     "vibe": "calm",
     "duration_seconds": 286,
     "audio_filename": "exams-morning-calm-001.mp3",
     "bytes": 4808664
-  },
-  {
-    "id": "catalog-exams-nightbefore-calm-006",
-    "title": "Night Before the Exam",
-    "category": "exams",
-    "vibe": "calm",
-    "duration_seconds": 293,
-    "audio_filename": "exams-nightbefore-calm-006.mp3",
-    "bytes": 4979609
   },
   {
     "id": "catalog-exams-opening-calm-002",
@@ -72,33 +54,6 @@
     "bytes": 5853144
   },
   {
-    "id": "catalog-foundations-first-calm-002",
-    "title": "Your First Rehearsal",
-    "category": "foundations",
-    "vibe": "calm",
-    "duration_seconds": 169,
-    "audio_filename": "foundations-first-calm-002.mp3",
-    "bytes": 3435250
-  },
-  {
-    "id": "catalog-foundations-how-calm-001",
-    "title": "How This Works",
-    "category": "foundations",
-    "vibe": "calm",
-    "duration_seconds": 126,
-    "audio_filename": "foundations-how-calm-001.mp3",
-    "bytes": 2450120
-  },
-  {
-    "id": "catalog-foundations-practice-calm-003",
-    "title": "Building Your Practice",
-    "category": "foundations",
-    "vibe": "calm",
-    "duration_seconds": 130,
-    "audio_filename": "foundations-practice-calm-003.mp3",
-    "bytes": 2465585
-  },
-  {
     "id": "catalog-gym-bench-calm-005",
     "title": "Bench Press Working Sets",
     "category": "gym",
@@ -108,17 +63,8 @@
     "bytes": 5711456
   },
   {
-    "id": "catalog-gym-comeback-calm-008",
-    "title": "First Day Back After Injury",
-    "category": "gym",
-    "vibe": "calm",
-    "duration_seconds": 355,
-    "audio_filename": "gym-comeback-calm-008.mp3",
-    "bytes": 5767044
-  },
-  {
     "id": "catalog-gym-competition-energetic-006",
-    "title": "Competition Day — Powerlifting",
+    "title": "Competition Day \u2014 Powerlifting",
     "category": "gym",
     "vibe": "energetic",
     "duration_seconds": 417,
@@ -154,7 +100,7 @@
   },
   {
     "id": "catalog-gym-olympic-calm-007",
-    "title": "Olympic Lifts — Clean & Jerk",
+    "title": "Olympic Lifts \u2014 Clean & Jerk",
     "category": "gym",
     "vibe": "calm",
     "duration_seconds": 377,
@@ -234,15 +180,6 @@
     "bytes": 4981699
   },
   {
-    "id": "catalog-running-comeback-calm-006",
-    "title": "Coming Back from a Bad Race",
-    "category": "running",
-    "vibe": "calm",
-    "duration_seconds": 334,
-    "audio_filename": "running-comeback-calm-006.mp3",
-    "bytes": 6189183
-  },
-  {
     "id": "catalog-running-general-calm-000",
     "title": "Before You Run",
     "category": "running",
@@ -261,15 +198,6 @@
     "bytes": 4873866
   },
   {
-    "id": "catalog-running-kick-lfg-005",
-    "title": "Finishing Kick — Last 400m",
-    "category": "running",
-    "vibe": "lfg",
-    "duration_seconds": 164,
-    "audio_filename": "running-kick-lfg-005.mp3",
-    "bytes": 3549771
-  },
-  {
     "id": "catalog-running-morning-calm-003",
     "title": "Race Morning Routine",
     "category": "running",
@@ -280,21 +208,12 @@
   },
   {
     "id": "catalog-running-racestart-energetic-002",
-    "title": "Race Start — 5K/10K",
+    "title": "Race Start \u2014 5K/10K",
     "category": "running",
     "vibe": "energetic",
     "duration_seconds": 265,
     "audio_filename": "running-racestart-energetic-002.mp3",
     "bytes": 5359952
-  },
-  {
-    "id": "catalog-running-wall-calm-001",
-    "title": "Marathon Miles 20-22 — The Wall",
-    "category": "running",
-    "vibe": "calm",
-    "duration_seconds": 431,
-    "audio_filename": "running-wall-calm-001.mp3",
-    "bytes": 8038653
   },
   {
     "id": "catalog-speaking-allhands-energetic-005",
@@ -334,7 +253,7 @@
   },
   {
     "id": "catalog-speaking-meeting-energetic-002",
-    "title": "Team Meeting — Leading",
+    "title": "Team Meeting \u2014 Leading",
     "category": "public_speaking",
     "vibe": "energetic",
     "duration_seconds": 271,
@@ -343,7 +262,7 @@
   },
   {
     "id": "catalog-speaking-qa-calm-003",
-    "title": "Q&A Handling — Tough Questions",
+    "title": "Q&A Handling \u2014 Tough Questions",
     "category": "public_speaking",
     "vibe": "calm",
     "duration_seconds": 320,
@@ -361,7 +280,7 @@
   },
   {
     "id": "catalog-tennis-breakpoint-calm-004",
-    "title": "Break Point — Serving",
+    "title": "Break Point \u2014 Serving",
     "category": "tennis",
     "vibe": "calm",
     "duration_seconds": 287,
