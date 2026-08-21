@@ -7,17 +7,26 @@
 #
 # If the local CLI version predates per-function config, deploy the web
 # functions with:  npx supabase functions deploy <name> --no-verify-jwt
+#
+# import_map points the deploy bundler at the shared import map. Without it the
+# bare '@supabase/supabase-js' specifier in _shared/auth.ts fails to bundle. The
+# specifier must stay bare rather than become a Deno-only `npm:` URL, because
+# vitest also type-checks and imports these modules under Node.
 
 project_id = "eardium-web"
 
 [functions.web-account]
 verify_jwt = false
+import_map = "./functions/deno.json"
 
 [functions.web-folders]
 verify_jwt = false
+import_map = "./functions/deno.json"
 
 [functions.web-waitlist]
 verify_jwt = false
+import_map = "./functions/deno.json"
 
 [functions.feed]
 verify_jwt = false
+import_map = "./functions/deno.json"
