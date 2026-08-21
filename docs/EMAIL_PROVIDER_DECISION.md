@@ -37,7 +37,7 @@ CLOUDFLARE_ACCOUNT_ID=<account id>
 CLOUDFLARE_EMAIL_API_TOKEN=<account-owned token, Email Sending: Edit only>
 EMAIL_FROM_ADDRESS=notify@eardium.com
 EMAIL_FROM_NAME=Eardium
-EMAIL_REPLY_TO_ADDRESS=<an existing Google Workspace @eardium.com alias>
+EMAIL_REPLY_TO_ADDRESS=<a mailbox that can actually receive; omit if none>
 ```
 
 Do not commit any of these values. Set them with `supabase secrets set` after
