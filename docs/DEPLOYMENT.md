@@ -110,5 +110,26 @@ Set `CONTENT_SAFETY_APPROVED` only after the human disposition and audio gates b
   `last_polled_at` advances — the Gate A metric works.
 - **RLS deny-all verified**: the anon key reads `[]` from `web_folders` and
   `web_waitlist`.
+- **Double opt-in verified end to end 2026-08-21** against the live Cloudflare
+  provider (`EMAIL_PROVIDER=cloudflare`), exercising `_shared/email.ts` rather than
+  the wrangler CLI:
+  - join → `202 {"status":"pending"}`, row written with `consent_version`,
+    `requested_at`, a 24h `confirm_token_expires_at`, and `confirmation_sent_at`
+    stamped only after Cloudflare accepted the message;
+  - the confirmation email arrived and its link confirmed successfully;
+  - on confirm, `confirmed_at` is stamped and both `confirm_token_hash` and
+    `confirm_token_expires_at` are cleared — the link is genuinely single-use;
+  - replaying the same link → 404; an unknown or malformed token → 404;
+  - a repeat join inside the 5-minute cooldown sends nothing **and leaves the
+    existing token intact**, so a link already delivered keeps working;
+  - a join for an already-confirmed address issues no new token;
+  - every join path returns an identical 202, so the endpoint does not reveal
+    which addresses are subscribed;
+  - the `web_waitlist` row has no column referencing accounts, folders, feed
+    tokens, or catalog selections.
+
+  The plaintext confirmation token exists only inside the email — it is stored as a
+  SHA-256 hash — so this step cannot be driven from the CLI and needs a human to
+  click the link.
 - Smoke-test account creation/login/deletion, folder ownership, token rotation, exact QR payload, podcast-app handoff, feed XML/byte ranges, poll timestamps, and double opt-in.
 - Add login rate limiting and the documented inactivity-expiry rule before sharing with testers.
