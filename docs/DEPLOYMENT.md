@@ -18,11 +18,11 @@ WEB_ACCOUNT_HASH_KEY=<stable high-entropy key>
 WEB_APP_URL=https://eardium.github.io/eardium-web
 CATALOG_AUDIO_BASE_URL=https://xfqvqnsgwceitysdrqdn.supabase.co/storage/v1/object/public/catalog-audio
 EMAIL_PROVIDER=cloudflare
-CLOUDFLARE_ACCOUNT_ID=<account id>
+CLOUDFLARE_ACCOUNT_ID=eb0fad984ed028f17b36e2cc6dae2eab
 CLOUDFLARE_EMAIL_API_TOKEN=<account-owned Email Sending: Edit token>
 EMAIL_FROM_ADDRESS=notify@eardium.com
 EMAIL_FROM_NAME=Eardium
-EMAIL_REPLY_TO_ADDRESS=<a mailbox that can actually receive; omit if none>
+# EMAIL_REPLY_TO_ADDRESS intentionally unset — send-only, no two-way case in P1
 ```
 
 Supabase supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to functions. No secret is exposed to the browser.
@@ -31,7 +31,37 @@ Supabase supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to functions. N
 
 Onboard `eardium.com` under Email Sending only (dashboard: **Compute → Email Service → Email Sending → Onboard Domain**). It creates authentication and bounce records on the separate `cf-bounce` namespace. Do not enable Cloudflare Email Routing — the two are managed independently. Keep message preview disabled and start DMARC in monitoring mode.
 
-**Verified 2026-08-21:** `eardium.com` is on Cloudflare nameservers, but the zone has **no MX and no SPF record** — there is no existing Google Workspace inbound routing to preserve, and no `@eardium.com` address can currently receive mail. Onboarding is therefore unobstructed, but `EMAIL_REPLY_TO_ADDRESS` must point at a real mailbox on another domain (or be left unset) until MX records are added.
+**Completed 2026-08-21.** `npx wrangler email sending enable eardium.com` onboarded the domain and wrote five records:
+
+| Record | Value |
+|---|---|
+| `cf-bounce.eardium.com` MX | `route1/2/3.mx.cloudflare.net` |
+| `cf-bounce.eardium.com` TXT | `v=spf1 include:_spf.mx.cloudflare.net ~all` |
+| `cf-bounce._domainkey.eardium.com` TXT | Cloudflare DKIM key |
+| `_dmarc.eardium.com` TXT | `v=DMARC1; p=reject;` |
+
+Root MX, root TXT, and `google._domainkey` were untouched — all five records were new
+additions on the isolated `cf-bounce` namespace.
+
+**`_dmarc` lands at the root with `p=reject`, not `p=none`.** That is safe here only because
+Google Workspace DKIM authentication is *running* for `eardium.com` (Admin → Apps → Google
+Workspace → Gmail → Authenticate email shows "Stop authentication"), so Workspace mail sent
+from the `m@eardium.com` alias carries an aligned `d=eardium.com` signature and passes DMARC.
+**Verify that setting before onboarding any further domain** — if the DKIM key is published but
+authentication was never started, `p=reject` silently breaks all existing outbound for that
+domain. Note also that the record carries no `rua=`, so enforcement is on but reporting is off.
+
+**Delivery verified 2026-08-21** — live send to an external Gmail address landed in the inbox
+in 4 seconds with `SPF: PASS`, `DKIM: PASS with domain eardium.com`, `DMARC: PASS`. Cloudflare
+mail has two independent paths to a DMARC pass (DKIM signs `d=eardium.com; s=cf-bounce`, and
+relaxed alignment accepts the `cf-bounce.eardium.com` envelope domain); Google mail has one
+(DKIM).
+
+**Inbound is still not configured** — the zone has no root MX, so no `@eardium.com` address can
+receive. This is intentional for P1: the waitlist flow is send-only and there is no two-way case,
+so `EMAIL_REPLY_TO_ADDRESS` is left **unset** and the adapter omits `reply_to` entirely.
+`notify@eardium.com` is the transactional sender, deliberately distinct from the `m@eardium.com`
+Workspace alias.
 
 ## 3. GitHub Pages variables
 

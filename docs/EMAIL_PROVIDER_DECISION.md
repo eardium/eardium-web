@@ -14,7 +14,9 @@ explicitly requested customisation-availability notification.
 
 - Email Sending is in public beta and requires the account-level Workers Paid plan. The `eardium.com` DNS zone itself can remain on Cloudflare Free.
 - The sending domain must use Cloudflare DNS and be onboarded under Email Service. P1 will use `eardium.com`; the sender address remains deployment configuration (`EMAIL_FROM_ADDRESS`).
-- **Verified 2026-08-21: the live `eardium.com` zone has no MX and no SPF record.** Nameservers are Cloudflare (`corey`/`paloma.ns.cloudflare.com`); the only mail-related record is a leftover `google._domainkey` DKIM TXT, plus a `google-site-verification` TXT. There is therefore no Google Workspace inbound routing on this domain to preserve, and **nothing at `@eardium.com` can receive mail today**. Two consequences: onboarding has no conflicting records to work around, and `EMAIL_REPLY_TO_ADDRESS` must not be an `@eardium.com` address until MX records exist, or replies will bounce.
+- **Onboarded and delivery-verified 2026-08-21.** `eardium.com` is on Cloudflare nameservers and now has Email Sending enabled; a live send reached an external Gmail inbox in 4 seconds with SPF, DKIM (`d=eardium.com`), and DMARC all passing. Setup details and the full record list are in `docs/DEPLOYMENT.md`.
+- **The zone still has no root MX and no root SPF.** `eardium.com` is verified in Google Workspace (which is what enables send-as for the `m@eardium.com` alias) and its DKIM authentication is running, but inbound was never wired — **nothing at `@eardium.com` can receive mail**. P1 needs no two-way flow, so the transactional sender `notify@eardium.com` is send-only and `EMAIL_REPLY_TO_ADDRESS` is left unset; the adapter omits `reply_to` when the variable is absent. Adding Google MX records is the single change that would make replies work, if a two-way case ever appears.
+- **Onboarding writes `_dmarc.eardium.com` = `v=DMARC1; p=reject;` at the root**, not `p=none`. Confirm Google Workspace DKIM authentication is *started* (not merely that the `google._domainkey` record exists) before onboarding any domain that already sends through Workspace — otherwise that record silently hard-bounces all of its existing outbound. The record carries no `rua=`, so enforcement is on with no failure reporting.
 - Do **not** enable Cloudflare Email Routing: Email Sending coexists by using separate `cf-bounce` records, and the two are managed independently (removing one does not affect the other).
 - The service is [transactional-only](https://developers.cloudflare.com/email-service/reference/faq/). The later message must remain the one notification the person explicitly requested, not a newsletter or promotional campaign. If the scope grows into marketing, use a marketing-capable provider with unsubscribe/list management.
 - Cloudflare's event analytics include sender, recipient, subject, message id, and errors for [31 days](https://developers.cloudflare.com/email-service/observability/metrics-analytics/). Message preview must remain off; if enabled, it stores sent content for about seven days.
@@ -33,11 +35,11 @@ explicitly requested customisation-availability notification.
 
 ```text
 EMAIL_PROVIDER=cloudflare
-CLOUDFLARE_ACCOUNT_ID=<account id>
+CLOUDFLARE_ACCOUNT_ID=eb0fad984ed028f17b36e2cc6dae2eab
 CLOUDFLARE_EMAIL_API_TOKEN=<account-owned token, Email Sending: Edit only>
 EMAIL_FROM_ADDRESS=notify@eardium.com
 EMAIL_FROM_NAME=Eardium
-EMAIL_REPLY_TO_ADDRESS=<a mailbox that can actually receive; omit if none>
+# EMAIL_REPLY_TO_ADDRESS intentionally unset — send-only, no two-way case in P1
 ```
 
 Do not commit any of these values. Set them with `supabase secrets set` after
