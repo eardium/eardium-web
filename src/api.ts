@@ -5,6 +5,16 @@ interface ApiErrorBody {
   error?: string;
 }
 
+/** A response the backend actually produced, as opposed to a transport failure. */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 async function request<T>(
   functionName: string,
   body: Record<string, unknown>,
@@ -23,7 +33,7 @@ async function request<T>(
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as ApiErrorBody;
-    throw new Error(payload.error || `Request failed (${response.status})`);
+    throw new ApiError(payload.error || `Request failed (${response.status})`, response.status);
   }
   return response.json() as Promise<T>;
 }

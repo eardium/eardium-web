@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 import {
+  ApiError,
   createAccount,
   deleteAccount,
   folderAction,
@@ -234,6 +235,8 @@ function SessionPage({ id, accountNumber, folders, refreshFolders }: SessionPage
   );
 }
 
+type FoldersStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 interface FoldersPageProps {
   accountNumber: string | null;
   folders: Folder[];
@@ -296,13 +299,29 @@ function FoldersPage({ accountNumber, folders, refreshFolders }: FoldersPageProp
   );
 }
 
-interface FolderPageProps extends FoldersPageProps { id: string }
+interface FolderPageProps extends FoldersPageProps { id: string; foldersStatus: FoldersStatus }
 
-function FolderPage({ id, accountNumber, folders, refreshFolders }: FolderPageProps) {
+function FolderPage({ id, accountNumber, folders, refreshFolders, foldersStatus }: FolderPageProps) {
   const folder = folders.find((candidate) => candidate.id === id);
   const [status, setStatus] = useState('');
   if (!accountNumber) return <FoldersPage accountNumber={null} folders={[]} refreshFolders={refreshFolders} />;
-  if (!folder) return <NotFoundPage />;
+  if (!folder) {
+    // Folders arrive asynchronously on a fresh page load — only claim the
+    // folder is missing once we actually know what the account contains.
+    if (foldersStatus === 'loading' || foldersStatus === 'idle') {
+      return <section className="page empty-state"><p className="eyebrow">Private folder</p><h1>Loading your folders…</h1></section>;
+    }
+    if (foldersStatus === 'error') {
+      return (
+        <section className="page empty-state">
+          <p className="eyebrow">Private folder</p>
+          <h1>Couldn’t load your folders.</h1>
+          <p>Check your connection and reload this page. Your account number is still saved on this device.</p>
+        </section>
+      );
+    }
+    return <NotFoundPage />;
+  }
 
   async function removeItem(catalogId: string): Promise<void> {
     try {
@@ -332,9 +351,9 @@ function FolderPage({ id, accountNumber, folders, refreshFolders }: FolderPagePr
       <p className="page__intro">
         Use a neutral name: it appears in podcast apps and is visible to anyone holding the feed link.
       </p>
-      {folder.items.length ? (
+      {(folder.items ?? []).length ? (
         <div className="folder-items">
-          {folder.items.map((item) => {
+          {(folder.items ?? []).map((item) => {
             const entry = getCatalogEntry(item.catalog_id);
             return entry ? (
               <div className="folder-item" key={item.catalog_id}>
@@ -416,6 +435,16 @@ function AccountPage({ accountNumber, setAccountNumber, setFolders }: AccountPag
     }
   }
 
+  async function copyNumber(): Promise<void> {
+    if (!accountNumber) return;
+    try {
+      await navigator.clipboard.writeText(accountNumber);
+      setStatus('Account number copied.');
+    } catch {
+      setStatus('Copying failed — select and copy the number above manually.');
+    }
+  }
+
   async function waitlist(event: FormEvent): Promise<void> {
     event.preventDefault();
     try {
@@ -439,7 +468,7 @@ function AccountPage({ accountNumber, setAccountNumber, setFolders }: AccountPag
           <span>Your saved account number</span>
           <strong>{formatAccountNumber(accountNumber)}</strong>
           <div className="button-row">
-            <button className="button button--secondary" type="button" onClick={() => navigator.clipboard.writeText(accountNumber)}>Copy</button>
+            <button className="button button--secondary" type="button" onClick={copyNumber}>Copy</button>
             <button className="text-button" type="button" onClick={() => { clearAccountNumber(); setAccountNumber(null); setFolders([]); }}>Log out on this device</button>
           </div>
         </div>
@@ -481,6 +510,16 @@ export function App() {
     route.name === 'subscribe' ? null : loadAccountNumber(),
   );
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [foldersStatus, setFoldersStatus] = useState<FoldersStatus>('idle');
+
+  // The handoff page never reads the stored number; pick it back up as soon as
+  // the user navigates anywhere else, so a session that started on a subscribe
+  // link is not stuck logged out (and cannot overwrite the saved credential).
+  useEffect(() => {
+    if (handoffOnly || accountNumber !== null) return;
+    const stored = loadAccountNumber();
+    if (stored) setAccountNumber(stored);
+  }, [handoffOnly, accountNumber]);
 
   const refreshFolders = useCallback(async () => {
     if (!accountNumber) return setFolders([]);
@@ -488,14 +527,36 @@ export function App() {
   }, [accountNumber]);
 
   useEffect(() => {
-    if (handoffOnly || !accountNumber) return;
+    if (handoffOnly) return;
+    if (!accountNumber) {
+      setFoldersStatus('idle');
+      return;
+    }
+    let cancelled = false;
+    setFoldersStatus('loading');
     loginAccount(accountNumber)
-      .then((result) => setFolders(result.folders))
-      .catch(() => {
-        clearAccountNumber();
-        setAccountNumber(null);
-        setFolders([]);
+      .then((result) => {
+        if (cancelled) return;
+        setFolders(result.folders);
+        setFoldersStatus('ready');
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        // Only an explicit rejection of the number means the account is gone.
+        // A network failure or server error must not destroy the credential —
+        // it is shown exactly once and cannot be recovered.
+        if (error instanceof ApiError && error.status === 401) {
+          clearAccountNumber();
+          setAccountNumber(null);
+          setFolders([]);
+          setFoldersStatus('idle');
+        } else {
+          setFoldersStatus('error');
+        }
       });
+    return () => {
+      cancelled = true;
+    };
   }, [accountNumber, handoffOnly]);
 
   const page = useMemo(() => {
@@ -504,12 +565,12 @@ export function App() {
       case 'category': return <CategoryPage categoryId={route.category} />;
       case 'session': return <SessionPage id={route.id} accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} />;
       case 'folders': return <FoldersPage accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} />;
-      case 'folder': return <FolderPage id={route.id} accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} />;
+      case 'folder': return <FolderPage id={route.id} accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} foldersStatus={foldersStatus} />;
       case 'subscribe': return <SubscribePage token={route.token} />;
       case 'account': return <AccountPage accountNumber={accountNumber} setAccountNumber={setAccountNumber} setFolders={setFolders} />;
       default: return <NotFoundPage />;
     }
-  }, [accountNumber, folders, refreshFolders, route]);
+  }, [accountNumber, folders, foldersStatus, refreshFolders, route]);
 
   return (
     <div className="site-shell">

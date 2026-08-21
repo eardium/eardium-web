@@ -22,6 +22,8 @@ describe('private feed handoff links', () => {
     expect(links.pocketCasts).toBe(
       'pktc://subscribe/web-project.supabase.co/functions/v1/feed/private_token_1234567890',
     );
-    expect(links.apple).toBe(`podcast://${feed}`);
+    expect(links.apple).toBe(
+      'podcast://web-project.supabase.co/functions/v1/feed/private_token_1234567890',
+    );
   });
 });

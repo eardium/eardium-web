@@ -11,14 +11,19 @@
  * retained.
  *
  * Join responses are deliberately uniform so this public endpoint does not
- * directly reveal which addresses are already subscribed. Confirmation
- * links are single-use and expire after 24 hours; repeat sends are cooled down
- * per address.
+ * directly reveal which addresses are already subscribed: every join outcome
+ * performs one lookup plus one row write and returns the same 202, with the
+ * email dispatched off-response (EdgeRuntime.waitUntil), so neither status nor
+ * timing separates confirmed, pending, and new addresses. Confirmation links
+ * are single-use and expire after 24 hours; repeat sends are cooled down per
+ * address, and joins are rate-limited per IP so the form cannot be scripted to
+ * spray confirmation emails at arbitrary addresses.
  */
 
 import { webCorsResponse, jsonResponse, webCorsHeaders } from '../_shared/cors-web.ts';
 import { getAdminClient } from '../_shared/auth.ts';
-import { errorResponse, ValidationError } from '../_shared/errors.ts';
+import { errorResponse, readJsonBody, ValidationError } from '../_shared/errors.ts';
+import { enforceRateLimit } from '../_shared/rate-limit.ts';
 import { sha256Hex, generateUrlToken } from '../_shared/web-auth.ts';
 import { sendConfirmationEmail } from '../_shared/email.ts';
 
@@ -84,10 +89,12 @@ Deno.serve(async (req: Request) => {
       throw new ValidationError('POST or GET required');
     }
 
-    const body = await req.json();
+    const body = await readJsonBody(req);
 
     // ─── Join ───────────────────────────────────────────
     if (body.action === 'join') {
+      enforceRateLimit('waitlist-join', req, 10);
+
       const raw = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
       if (!EMAIL_RE.test(raw) || raw.length > 254) {
         throw new ValidationError('A valid email address is required');
@@ -95,6 +102,19 @@ Deno.serve(async (req: Request) => {
 
       const admin = getAdminClient();
       const now = new Date();
+
+      // Every early exit below performs the same one-write shape as the real
+      // path so response timing does not separate the outcomes; the values
+      // written are unchanged.
+      const balanceTiming = async (id: string): Promise<void> => {
+        const { error: balanceError } = await admin
+          .from('web_waitlist')
+          .update({ consent_version: CONSENT_VERSION })
+          .eq('id', id);
+        if (balanceError) {
+          console.error('Waitlist balancing update error:', balanceError);
+        }
+      };
 
       const { data: existing, error: lookupError } = await admin
         .from('web_waitlist')
@@ -107,13 +127,15 @@ Deno.serve(async (req: Request) => {
       }
 
       if (existing?.confirmed_at) {
+        await balanceTiming(existing.id);
         return jsonResponse({ status: 'pending' }, 202);
       }
 
       const sentAt = existing?.confirmation_sent_at
         ? Date.parse(existing.confirmation_sent_at)
         : Number.NaN;
-      if (Number.isFinite(sentAt) && now.getTime() - sentAt < RESEND_COOLDOWN_MS) {
+      if (existing && Number.isFinite(sentAt) && now.getTime() - sentAt < RESEND_COOLDOWN_MS) {
+        await balanceTiming(existing.id);
         return jsonResponse({ status: 'pending' }, 202);
       }
 
@@ -121,36 +143,80 @@ Deno.serve(async (req: Request) => {
       const confirmTokenHash = await sha256Hex(confirmToken);
       const expiresAt = new Date(now.getTime() + CONFIRMATION_TTL_MS).toISOString();
 
-      const { error: upsertError } = await admin.from('web_waitlist').upsert(
-        {
+      if (existing) {
+        // Guarded update instead of a blind upsert: a confirmation landing
+        // between the lookup above and this write must never be reverted to
+        // pending.
+        const { data: updated, error: updateError } = await admin
+          .from('web_waitlist')
+          .update({
+            confirm_token_hash: confirmTokenHash,
+            confirm_token_expires_at: expiresAt,
+            confirmation_sent_at: null,
+            consent_version: CONSENT_VERSION,
+            requested_at: now.toISOString(),
+          })
+          .eq('id', existing.id)
+          .is('confirmed_at', null)
+          .select('id')
+          .maybeSingle();
+        if (updateError) {
+          console.error('Waitlist update error:', updateError);
+          throw new Error('Failed to join waitlist');
+        }
+        if (!updated) {
+          // Confirmed concurrently — they are subscribed; nothing to send.
+          return jsonResponse({ status: 'pending' }, 202);
+        }
+      } else {
+        const { error: insertError } = await admin.from('web_waitlist').insert({
           email: raw,
           confirm_token_hash: confirmTokenHash,
           confirm_token_expires_at: expiresAt,
-          confirmation_sent_at: null,
           consent_version: CONSENT_VERSION,
           requested_at: now.toISOString(),
-          confirmed_at: null,
-        },
-        { onConflict: 'email' },
-      );
-      if (upsertError) {
-        console.error('Waitlist upsert error:', upsertError);
-        throw new Error('Failed to join waitlist');
+        });
+        if (insertError) {
+          // 23505: a concurrent join created the row and owns the email send.
+          if (insertError.code === '23505') {
+            return jsonResponse({ status: 'pending' }, 202);
+          }
+          console.error('Waitlist insert error:', insertError);
+          throw new Error('Failed to join waitlist');
+        }
       }
 
+      // Dispatch off-response so the (slow, retried) provider call shapes
+      // neither the latency nor the status of the public reply. On failure the
+      // row stays pending with confirmation_sent_at null, so the user can
+      // simply submit the form again — no cooldown blocks the retry.
       const confirmUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/web-waitlist?token=${confirmToken}`;
-      const dispatch = await sendConfirmationEmail({ to: raw, confirmUrl });
-      if (dispatch === 'sent') {
-        const { error: sentAtError } = await admin
-          .from('web_waitlist')
-          .update({ confirmation_sent_at: new Date().toISOString() })
-          .eq('email', raw)
-          .eq('confirm_token_hash', confirmTokenHash);
-        if (sentAtError) {
-          // The email is already on its way. Log the bookkeeping failure but
-          // keep the public response generic so a retry cannot enumerate rows.
-          console.error('Waitlist confirmation_sent_at update error:', sentAtError);
+      const dispatchTask = (async () => {
+        try {
+          const dispatch = await sendConfirmationEmail({ to: raw, confirmUrl });
+          if (dispatch === 'sent') {
+            const { error: sentAtError } = await admin
+              .from('web_waitlist')
+              .update({ confirmation_sent_at: new Date().toISOString() })
+              .eq('email', raw)
+              .eq('confirm_token_hash', confirmTokenHash);
+            if (sentAtError) {
+              console.error('Waitlist confirmation_sent_at update error:', sentAtError);
+            }
+          }
+        } catch (dispatchError) {
+          console.error('Waitlist confirmation dispatch error:', dispatchError);
         }
+      })();
+      const runtime = (globalThis as {
+        EdgeRuntime?: { waitUntil?: (task: Promise<unknown>) => void };
+      }).EdgeRuntime;
+      if (runtime?.waitUntil) {
+        runtime.waitUntil(dispatchTask);
+      } else {
+        // Local `supabase functions serve` has no waitUntil; keep the isolate
+        // alive until the send settles.
+        await dispatchTask;
       }
 
       return jsonResponse({ status: 'pending' }, 202);

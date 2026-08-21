@@ -2,7 +2,7 @@ const DEFAULT_CATALOG_AUDIO_BASE_URL =
   'https://xfqvqnsgwceitysdrqdn.supabase.co/storage/v1/object/public/catalog-audio';
 const DEFAULT_WEB_APP_URL = 'https://eardium.github.io/eardium-web';
 
-function withoutTrailingSlash(value: string): string {
+export function withoutTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
 

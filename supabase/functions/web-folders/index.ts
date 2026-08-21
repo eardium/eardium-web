@@ -20,7 +20,7 @@
  */
 
 import { webCorsResponse, jsonResponse } from '../_shared/cors-web.ts';
-import { errorResponse, ValidationError } from '../_shared/errors.ts';
+import { errorResponse, readJsonBody, ValidationError } from '../_shared/errors.ts';
 import { getWebAccount, generateUrlToken } from '../_shared/web-auth.ts';
 import manifest from '../_shared/catalog-manifest.json' with { type: 'json' };
 
@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const { admin, accountId } = await getWebAccount(req);
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const action = body.action ?? 'list';
 
     // ─── List (folders + items) ─────────────────────────

@@ -11,6 +11,7 @@ import { fetchTimestamps } from '../shared/services/timestamps';
 import {
   getActiveSegmentIndex,
   getActiveWordIndex,
+  getSegmentOpacity,
   parseScript,
   type ParsedScript,
 } from '../shared/utils/script-parser';
@@ -189,12 +190,11 @@ export function KaraokePlayer({ entry }: KaraokePlayerProps) {
                 );
               }
               const activeWord = getActiveWordIndex(segment, currentTime);
-              const distance = Math.abs(segmentIndex - activeSegment);
               return (
                 <button
                   type="button"
                   className={segmentIndex === activeSegment ? 'transcript__line is-active' : 'transcript__line'}
-                  style={{ opacity: distance === 0 ? 1 : distance === 1 ? 0.55 : 0.25 }}
+                  style={{ opacity: getSegmentOpacity(segmentIndex, activeSegment) }}
                   key={`${segment.startTime}-${segmentIndex}`}
                   ref={(element) => { lineRefs.current[segmentIndex] = element; }}
                   onClick={() => seekTo(segment.startTime)}

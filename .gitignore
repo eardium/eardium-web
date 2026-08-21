@@ -29,3 +29,6 @@ yarn-error.log*
 # typescript
 /dist/
 *.tsbuildinfo
+
+# supabase CLI per-machine link/session state
+supabase/.temp/

@@ -14,7 +14,8 @@
 
 import { webCorsResponse, jsonResponse } from '../_shared/cors-web.ts';
 import { getAdminClient, AuthError } from '../_shared/auth.ts';
-import { errorResponse, ValidationError } from '../_shared/errors.ts';
+import { errorResponse, readJsonBody, ValidationError } from '../_shared/errors.ts';
+import { enforceRateLimit } from '../_shared/rate-limit.ts';
 import {
   normalizeAccountNumber,
   hashAccountNumber,
@@ -23,20 +24,29 @@ import {
   getWebAccount,
 } from '../_shared/web-auth.ts';
 
+interface FolderItemSummary {
+  catalog_id: string;
+  position: number;
+  added_at: string;
+}
+
 interface FolderSummary {
   id: string;
   name: string;
   feed_token: string;
   item_count: number;
+  items: FolderItemSummary[];
 }
 
+// Same folder shape as web-folders "list": the frontend renders items straight
+// from the login/create response, so the two must never drift apart.
 async function listFolderSummaries(
   admin: ReturnType<typeof getAdminClient>,
   accountId: string,
 ): Promise<FolderSummary[]> {
   const { data, error } = await admin
     .from('web_folders')
-    .select('id, name, feed_token, created_at, web_folder_items(count)')
+    .select('id, name, feed_token, created_at, web_folder_items(catalog_id, position, added_at)')
     .eq('account_id', accountId)
     .order('created_at', { ascending: true });
 
@@ -45,12 +55,17 @@ async function listFolderSummaries(
     throw new Error('Failed to list folders');
   }
 
-  return (data ?? []).map((f) => ({
-    id: f.id,
-    name: f.name,
-    feed_token: f.feed_token,
-    item_count: (f.web_folder_items as { count: number }[] | null)?.[0]?.count ?? 0,
-  }));
+  return (data ?? []).map((f) => {
+    const items = ((f.web_folder_items ?? []) as FolderItemSummary[])
+      .sort((a, b) => a.position - b.position);
+    return {
+      id: f.id,
+      name: f.name,
+      feed_token: f.feed_token,
+      item_count: items.length,
+      items,
+    };
+  });
 }
 
 Deno.serve(async (req: Request) => {
@@ -63,11 +78,12 @@ Deno.serve(async (req: Request) => {
       throw new ValidationError('POST required');
     }
 
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const action = body.action;
 
     // ─── Create Account ─────────────────────────────────
     if (action === 'create') {
+      enforceRateLimit('account-create', req, 5);
       const admin = getAdminClient();
 
       let accountNumber = '';
@@ -112,6 +128,7 @@ Deno.serve(async (req: Request) => {
 
     // ─── Login ──────────────────────────────────────────
     if (action === 'login') {
+      enforceRateLimit('account-login', req, 30);
       const number = normalizeAccountNumber(body.account_number);
       const admin = getAdminClient();
       const hash = await hashAccountNumber(number);

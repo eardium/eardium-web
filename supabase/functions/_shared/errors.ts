@@ -42,6 +42,21 @@ export class ValidationError extends Error {
   }
 }
 
+/** Parse a JSON request body, reporting malformed input as a 400 rather than
+ * letting the SyntaxError surface as a phantom 500 in the error logs. */
+export async function readJsonBody(req: Request): Promise<Record<string, unknown>> {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    throw new ValidationError('Invalid JSON body');
+  }
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    throw new ValidationError('Invalid JSON body');
+  }
+  return body as Record<string, unknown>;
+}
+
 export class QuotaError extends Error {
   constructor(message: string) {
     super(message);

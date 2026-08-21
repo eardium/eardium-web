@@ -23,6 +23,10 @@ interface FeedXmlInput {
   items: FeedItem[];
 }
 
+export function withoutTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
 export function escapeXml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -40,11 +44,11 @@ export function buildFeedXml({
   webAppUrl,
   items,
 }: FeedXmlInput): string {
-  const feedUrl = `${functionsBaseUrl.replace(/\/$/, '')}/feed/${token}`;
+  const feedUrl = `${withoutTrailingSlash(functionsBaseUrl)}/feed/${token}`;
   const subscribePageUrl = `${webAppUrl}/#/subscribe/${token}`;
   const itemsXml = items
     .map(({ entry, position, added_at }) => {
-      const enclosureUrl = `${catalogAudioBaseUrl.replace(/\/$/, '')}/${entry.audio_filename}`;
+      const enclosureUrl = `${withoutTrailingSlash(catalogAudioBaseUrl)}/${entry.audio_filename}`;
       return `    <item>
       <title>${escapeXml(entry.title)}</title>
       <description>${escapeXml(entry.title)}</description>

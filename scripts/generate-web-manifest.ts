@@ -17,7 +17,8 @@
  */
 
 import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { getAllCatalogEntries } from '../src/shared/content/catalog';
 
 interface ManifestEntry {
@@ -30,7 +31,9 @@ interface ManifestEntry {
   bytes: number;
 }
 
-const OUTPUT_PATH = join(__dirname, '..', 'supabase', 'functions', '_shared', 'catalog-manifest.json');
+// package.json sets "type": "module", so this runs as ESM — no __dirname.
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const OUTPUT_PATH = join(SCRIPT_DIR, '..', 'supabase', 'functions', '_shared', 'catalog-manifest.json');
 const CONCURRENCY = 6;
 
 async function headSize(catalogAudioBaseUrl: string, filename: string): Promise<number> {

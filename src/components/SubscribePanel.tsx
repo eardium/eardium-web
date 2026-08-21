@@ -9,15 +9,21 @@ interface SubscribePanelProps {
 }
 
 export function SubscribePanel({ token, compact = false }: SubscribePanelProps) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const feedUrl = buildFeedUrl(functionsBaseUrl, token);
   const subscribeUrl = buildSubscribeUrl(webAppUrl, token);
   const links = buildPodcastLinks(feedUrl);
 
   async function copyFeed(): Promise<void> {
-    await navigator.clipboard.writeText(feedUrl);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    // The clipboard API is unavailable or denied in some webviews; the user
+    // must never believe their private feed URL was copied when it was not.
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+    window.setTimeout(() => setCopyState('idle'), 2400);
   }
 
   return (
@@ -38,7 +44,7 @@ export function SubscribePanel({ token, compact = false }: SubscribePanelProps) 
           <a className="button button--secondary" href={links.overcast}>Overcast</a>
           <a className="button button--secondary" href={links.pocketCasts}>Pocket Casts</a>
           <button className="button" type="button" onClick={copyFeed}>
-            {copied ? 'Copied' : 'Copy feed URL'}
+            {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed — copy manually' : 'Copy feed URL'}
           </button>
         </div>
         <p className="privacy-note">

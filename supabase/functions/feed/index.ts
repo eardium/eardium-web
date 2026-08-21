@@ -16,7 +16,7 @@
 
 import { webCorsHeaders, webCorsResponse } from '../_shared/cors-web.ts';
 import { getAdminClient } from '../_shared/auth.ts';
-import { buildFeedXml } from '../_shared/feed-xml.ts';
+import { buildFeedXml, withoutTrailingSlash } from '../_shared/feed-xml.ts';
 import type { ManifestEntry } from '../_shared/feed-xml.ts';
 import manifest from '../_shared/catalog-manifest.json' with { type: 'json' };
 
@@ -100,6 +100,14 @@ Deno.serve(async (req: Request) => {
       return textResponse('Feed temporarily unavailable', 503);
     }
 
+    // Resolve configuration before stamping anything: a poll that is about to
+    // fail on missing config must not count toward the retention metric.
+    const supabaseUrl = withoutTrailingSlash(Deno.env.get('SUPABASE_URL') ?? '');
+    const catalogAudioBaseUrl = Deno.env.get('CATALOG_AUDIO_BASE_URL');
+    if (!supabaseUrl || !catalogAudioBaseUrl) {
+      throw new Error('SUPABASE_URL and CATALOG_AUDIO_BASE_URL must be configured');
+    }
+
     // Retention measurement records only successful, serviceable feed polls.
     const now = new Date().toISOString();
     const { error: pollError } = await admin
@@ -118,12 +126,6 @@ Deno.serve(async (req: Request) => {
       if (firstPollError) {
         console.error('First-poll timestamp update error:', firstPollError);
       }
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')?.replace(/\/$/, '');
-    const catalogAudioBaseUrl = Deno.env.get('CATALOG_AUDIO_BASE_URL');
-    if (!supabaseUrl || !catalogAudioBaseUrl) {
-      throw new Error('SUPABASE_URL and CATALOG_AUDIO_BASE_URL must be configured');
     }
     const xml = buildFeedXml({
       folderName: folder.name,
