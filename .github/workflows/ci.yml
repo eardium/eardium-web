@@ -27,6 +27,10 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      # Type-checks the functions. The Supabase deploy bundler strips types
+      # rather than checking them, so a function can deploy and run while
+      # still failing this — keep it as a required check, and run it locally
+      # before deploying.
       - run: >-
           deno check --config supabase/functions/deno.json
           supabase/functions/web-account/index.ts

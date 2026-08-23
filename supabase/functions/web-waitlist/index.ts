@@ -44,12 +44,16 @@ const PURGE_UNCONFIRMED_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Run `task` after the response via EdgeRuntime.waitUntil when available.
  * Without it (local `supabase functions serve`) the task is left in flight —
- * safe here because supabase-js query results resolve rather than reject. */
-function inBackground(task: Promise<unknown>): void {
+ * safe here because supabase-js query results resolve rather than reject.
+ *
+ * Accepts PromiseLike because a supabase-js query builder is a thenable, not a
+ * real Promise; it is normalised with Promise.resolve before being handed to
+ * waitUntil, which expects a genuine Promise. */
+function inBackground(task: PromiseLike<unknown>): void {
   const runtime = (globalThis as {
     EdgeRuntime?: { waitUntil?: (task: Promise<unknown>) => void };
   }).EdgeRuntime;
-  runtime?.waitUntil?.(task);
+  runtime?.waitUntil?.(Promise.resolve(task));
 }
 
 function textResponse(text: string, status: number): Response {
