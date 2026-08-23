@@ -7,8 +7,12 @@
  *
  * The waitlist table is deliberately free-standing: no account number, feed
  * token, folder contents, or listening selections are ever attached to an
- * email. Only consent-confirmation evidence (requested_at / confirmed_at) is
- * retained.
+ * email. What is retained is consent evidence in the standard double-opt-in
+ * form: request/confirmation timestamps, the consent text version, and the IP
+ * presented at the request and at the confirmation click (Art. 7(1) GDPR /
+ * UWG proof of consent). Unconfirmed rows are purged ~30 days after their
+ * confirmation link expires, so request evidence does not outlive an ask that
+ * was never confirmed.
  *
  * Join responses are deliberately uniform so this public endpoint does not
  * directly reveal which addresses are already subscribed: every join outcome
@@ -23,7 +27,7 @@
 import { webCorsResponse, jsonResponse, webCorsHeaders } from '../_shared/cors-web.ts';
 import { getAdminClient } from '../_shared/auth.ts';
 import { errorResponse, readJsonBody, ValidationError } from '../_shared/errors.ts';
-import { enforceRateLimit } from '../_shared/rate-limit.ts';
+import { clientIp, enforceRateLimit } from '../_shared/rate-limit.ts';
 import { sha256Hex, generateUrlToken } from '../_shared/web-auth.ts';
 import { sendConfirmationEmail } from '../_shared/email.ts';
 
@@ -31,6 +35,17 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 const CONSENT_VERSION = 'waitlist-v1';
+const PURGE_UNCONFIRMED_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Run `task` after the response via EdgeRuntime.waitUntil when available.
+ * Without it (local `supabase functions serve`) the task is left in flight —
+ * safe here because supabase-js query results resolve rather than reject. */
+function inBackground(task: Promise<unknown>): void {
+  const runtime = (globalThis as {
+    EdgeRuntime?: { waitUntil?: (task: Promise<unknown>) => void };
+  }).EdgeRuntime;
+  runtime?.waitUntil?.(task);
+}
 
 function textResponse(text: string, status: number): Response {
   return new Response(text, {
@@ -65,6 +80,8 @@ Deno.serve(async (req: Request) => {
         .from('web_waitlist')
         .update({
           confirmed_at: now.toISOString(),
+          // Consent evidence: where the confirmation click came from.
+          confirmed_ip: clientIp(req),
           confirm_token_hash: null,
           confirm_token_expires_at: null,
         })
@@ -102,6 +119,26 @@ Deno.serve(async (req: Request) => {
 
       const admin = getAdminClient();
       const now = new Date();
+      const requestIp = clientIp(req);
+
+      // Data minimization: unconfirmed rows are deleted once their
+      // confirmation link has been expired for ~30 days, so request evidence
+      // (email + IP) does not outlive an ask that was never confirmed. Runs
+      // opportunistically on join traffic, off the response path, so it
+      // cannot skew the uniform-timing property below.
+      inBackground(
+        admin
+          .from('web_waitlist')
+          .delete()
+          .is('confirmed_at', null)
+          .lt(
+            'confirm_token_expires_at',
+            new Date(now.getTime() - PURGE_UNCONFIRMED_AFTER_MS).toISOString(),
+          )
+          .then(({ error: purgeError }) => {
+            if (purgeError) console.error('Waitlist purge error:', purgeError);
+          }),
+      );
 
       // Every early exit below performs the same one-write shape as the real
       // path so response timing does not separate the outcomes. The row's own
@@ -158,6 +195,7 @@ Deno.serve(async (req: Request) => {
             confirmation_sent_at: null,
             consent_version: CONSENT_VERSION,
             requested_at: now.toISOString(),
+            requested_ip: requestIp,
           })
           .eq('id', existing.id)
           .is('confirmed_at', null)
@@ -178,6 +216,7 @@ Deno.serve(async (req: Request) => {
           confirm_token_expires_at: expiresAt,
           consent_version: CONSENT_VERSION,
           requested_at: now.toISOString(),
+          requested_ip: requestIp,
         });
         if (insertError) {
           // 23505: a concurrent join created the row and owns the email send.

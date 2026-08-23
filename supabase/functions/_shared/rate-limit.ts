@@ -32,7 +32,9 @@ const MAX_TRACKED_KEYS = 10_000;
 
 const windows = new Map<string, Window>();
 
-function clientIp(req: Request): string | null {
+/** Client IP as presented by the edge gateway. Also used by web-waitlist as
+ * double-opt-in consent evidence (requested_ip / confirmed_ip). */
+export function clientIp(req: Request): string | null {
   // Supabase's edge gateway sets x-forwarded-for; first hop is the client.
   const forwarded = req.headers.get('x-forwarded-for');
   const first = forwarded?.split(',')[0]?.trim();
