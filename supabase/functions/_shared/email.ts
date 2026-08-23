@@ -5,6 +5,12 @@
  * this code runs in Supabase, not a Cloudflare Worker.
  *
  * Deliberately does NOT log email addresses.
+ *
+ * The sending domain is send-only (no MX on eardium.com), so every message
+ * names a mailbox that can actually receive — as reply_to, as a
+ * List-Unsubscribe header, and in the body text — taken from
+ * EMAIL_REPLY_TO_ADDRESS or PRIVACY_CONTACT_ADDRESS. Without one, no
+ * reply_to is set at all rather than advertising an address that bounces.
  */
 
 export interface ConfirmationEmail {
@@ -52,19 +58,36 @@ async function sendWithCloudflare(msg: ConfirmationEmail): Promise<'sent'> {
   const replyToAddress = Deno.env.get('EMAIL_REPLY_TO_ADDRESS')?.trim();
   const confirmUrl = escapeHtml(msg.confirmUrl);
 
+  // Withdrawal must be at least as easy as giving consent (Art. 7(3) GDPR).
+  // The From address is send-only — eardium.com has no MX — so a working
+  // mailbox is named in the body AND offered as reply_to and List-Unsubscribe,
+  // rather than leaving a reply that would silently bounce.
+  const contactAddress = replyToAddress || Deno.env.get('PRIVACY_CONTACT_ADDRESS')?.trim();
+  const listUnsubscribe = contactAddress
+    ? { 'List-Unsubscribe': `<mailto:${contactAddress}?subject=Unsubscribe>` }
+    : undefined;
+  const withdrawLine = contactAddress
+    ? `You can be removed at any time by emailing ${contactAddress}.`
+    : '';
+
   const payload = {
     to: msg.to,
     from: { address: fromAddress, name: fromName },
-    ...(replyToAddress ? { reply_to: replyToAddress } : {}),
+    ...(contactAddress ? { reply_to: contactAddress } : {}),
+    ...(listUnsubscribe ? { headers: listUnsubscribe } : {}),
     subject: 'Confirm your Eardium notification',
     text:
       `You asked to be notified when Eardium customisation is available.\n\n` +
       `Confirm your email: ${msg.confirmUrl}\n\n` +
-      'If you did not request this, you can ignore this email.',
+      'If you did not request this, you can ignore this email — the link expires ' +
+      'in 24 hours and the request is deleted about 30 days later.' +
+      (withdrawLine ? `\n\n${withdrawLine}` : ''),
     html:
       '<p>You asked to be notified when Eardium customisation is available.</p>' +
       `<p><a href="${confirmUrl}">Confirm your email</a></p>` +
-      '<p>If you did not request this, you can ignore this email.</p>',
+      '<p>If you did not request this, you can ignore this email — the link expires ' +
+      'in 24 hours and the request is deleted about 30 days later.</p>' +
+      (withdrawLine ? `<p>${escapeHtml(withdrawLine)}</p>` : ''),
   };
 
   const endpoint =

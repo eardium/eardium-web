@@ -79,6 +79,63 @@ describe('waitlist email dispatch', () => {
       subject: 'Confirm your Eardium notification',
     });
     expect(body.html).toContain('token=a&amp;b');
+    // Withdrawal must be as easy as consent (Art. 7(3) GDPR), and the From
+    // address cannot receive: every message has to name a working mailbox.
+    expect(body.headers['List-Unsubscribe']).toBe(
+      '<mailto:hello@eardium.com?subject=Unsubscribe>',
+    );
+    expect(body.text).toContain('emailing hello@eardium.com');
+    expect(body.html).toContain('emailing hello@eardium.com');
+  });
+
+  it('falls back to the privacy contact when no reply-to is configured', async () => {
+    env.EMAIL_PROVIDER = 'cloudflare';
+    env.CLOUDFLARE_ACCOUNT_ID = 'account-id';
+    env.CLOUDFLARE_EMAIL_API_TOKEN = 'api-token';
+    env.EMAIL_FROM_ADDRESS = 'notify@eardium.com';
+    env.PRIVACY_CONTACT_ADDRESS = 'privacy@example.org';
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        result: { delivered: ['person@example.com'], queued: [], permanent_bounces: [] },
+      }),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await sendConfirmationEmail({ to: 'person@example.com', confirmUrl: 'https://x/c' });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.reply_to).toBe('privacy@example.org');
+    expect(body.headers['List-Unsubscribe']).toBe(
+      '<mailto:privacy@example.org?subject=Unsubscribe>',
+    );
+  });
+
+  it('advertises no reply path rather than one that would bounce', async () => {
+    env.EMAIL_PROVIDER = 'cloudflare';
+    env.CLOUDFLARE_ACCOUNT_ID = 'account-id';
+    env.CLOUDFLARE_EMAIL_API_TOKEN = 'api-token';
+    env.EMAIL_FROM_ADDRESS = 'notify@eardium.com';
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        result: { delivered: ['person@example.com'], queued: [], permanent_bounces: [] },
+      }),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await sendConfirmationEmail({ to: 'person@example.com', confirmUrl: 'https://x/c' });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.reply_to).toBeUndefined();
+    expect(body.headers).toBeUndefined();
+    expect(body.text).not.toContain('emailing');
   });
 
   it('fails closed for an unsupported provider', async () => {

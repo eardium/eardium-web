@@ -136,8 +136,16 @@ export function PrivacyPage() {
         hours, and nothing further until you click it. The address is held in a separate table
         with no link to any account, folder, feed token, or listening selection, and is used for
         that one notification and nothing else — it is not a newsletter. Legal basis: consent
-        (Art. 6(1)(a) GDPR); you can withdraw it at any time by emailing{' '}
-        <a href="mailto:m@geldchen.com">m@geldchen.com</a>.
+        (Art. 6(1)(a) GDPR).
+      </p>
+      <p>
+        <strong>Withdrawing.</strong> Every message we send carries a{' '}
+        <code>List-Unsubscribe</code> header and names a mailbox that actually receives, and you
+        can reply to it directly or write to{' '}
+        <a href="mailto:m@geldchen.com">m@geldchen.com</a> at any time — one message is enough,
+        and we delete the entry. Withdrawal is therefore no harder than giving consent
+        (Art. 7(3) GDPR). Not confirming in the first place also works: an unconfirmed request
+        expires by itself.
       </p>
       <p>
         The consent record consists of when you asked, when we sent the confirmation, when you
@@ -211,39 +219,53 @@ export function PrivacyPage() {
 
       <h2>4. Who we share data with</h2>
       <p>
-        We use a small number of service providers (processors). None of them are permitted to
-        use your data for their own purposes.
+        Three providers process personal data on our behalf, under written processor terms
+        (Art. 28 GDPR). None of them may use your data for their own purposes.
       </p>
       <ul className="legal-page__list">
         <li>
           <strong>Supabase, Inc.</strong> (USA) — database and backend for both products, and
           file storage for the app. This website uses a separate Supabase project in the EU
-          (Frankfurt) from the one behind the iOS app.
+          (Frankfurt) from the one behind the iOS app. Transfers are covered by the Standard
+          Contractual Clauses incorporated in Supabase’s Data Processing Addendum.
         </li>
         <li>
           <strong>GitHub, Inc.</strong> (USA) — hosting and delivery of this site via GitHub
-          Pages.
+          Pages, which involves ordinary web-server request processing. GitHub is certified
+          under the EU–US Data Privacy Framework and additionally relies on the Standard
+          Contractual Clauses.
         </li>
         <li>
           <strong>Cloudflare, Inc.</strong> (USA) — sending the waitlist confirmation and
           notification emails. Cloudflare necessarily processes sender, recipient, subject,
-          message id, and delivery errors, and retains those delivery analytics for 31 days.
-          Message preview is disabled.
-        </li>
-        <li>
-          <strong>Apple Inc.</strong> — In-App Purchase billing, Sign in with Apple, and app
-          distribution (iOS app only).
-        </li>
-        <li>
-          <strong>ElevenLabs, Inc.</strong> (USA) — text-to-speech synthesis used to produce the
-          narrated audio in the content catalog.
+          message id, and delivery errors, and retains those delivery analytics for 31 days;
+          message preview is disabled, so message content is not stored by that feature.
+          Cloudflare is certified under the EU–US Data Privacy Framework and its Data
+          Processing Addendum also incorporates the Standard Contractual Clauses.
         </li>
       </ul>
       <p>
-        Where a provider is based outside the EU/EEA, the transfer is covered by that provider’s
-        certification under the EU–US Data Privacy Framework and/or Standard Contractual Clauses
-        under Art. 46 GDPR.
+        Two further companies are named here for completeness, because neither is our processor:
       </p>
+      <ul className="legal-page__list">
+        <li>
+          <strong>Apple Inc.</strong> acts as an independent controller for App Store
+          distribution, In-App Purchase billing, and Sign in with Apple. It decides how it
+          handles that data under its own privacy policy; we receive only a signal of whether
+          the unlock is owned. This concerns the iOS app only.
+        </li>
+        <li>
+          <strong>ElevenLabs, Inc.</strong> (USA) produced the narrated catalog audio from our
+          own scripts. <strong>No personal data of yours is sent to ElevenLabs</strong> — it is
+          a content-production supplier, not a processor of your data. That would change only if
+          the voice-cloning feature launches, and we would update this notice and ask for your
+          confirmation first.
+        </li>
+        <li>
+          <strong>Your podcast app</strong> acts on your behalf, not ours. When you subscribe,
+          its provider receives the feed URL — see section 2a.
+        </li>
+      </ul>
       <p>
         We do not use third-party advertising or analytics SDKs, and we do not sell your personal
         information.
