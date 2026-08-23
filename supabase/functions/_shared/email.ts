@@ -6,16 +6,20 @@
  *
  * Deliberately does NOT log email addresses.
  *
- * The sending domain is send-only (no MX on eardium.com), so every message
- * names a mailbox that can actually receive — as reply_to, as a
- * List-Unsubscribe header, and in the body text — taken from
- * EMAIL_REPLY_TO_ADDRESS or PRIVACY_CONTACT_ADDRESS. Without one, no
- * reply_to is set at all rather than advertising an address that bounces.
+ * Withdrawal is carried by a one-click unsubscribe URL (List-Unsubscribe plus
+ * the RFC 8058 List-Unsubscribe-Post, and a link in the body), which works
+ * regardless of whether the sending domain can receive mail. A mailto: target
+ * is added alongside it only when EMAIL_REPLY_TO_ADDRESS or
+ * PRIVACY_CONTACT_ADDRESS names a mailbox that genuinely receives; the From
+ * address is send-only, so advertising it would bounce.
  */
 
 export interface ConfirmationEmail {
   to: string;
   confirmUrl: string;
+  /** One-click unsubscribe URL. Carried in List-Unsubscribe and named in the
+   * body, so withdrawing never depends on a mailbox we might not control. */
+  unsubscribeUrl?: string;
 }
 
 export type EmailDispatchResult = 'sent' | 'not_configured';
@@ -59,22 +63,39 @@ async function sendWithCloudflare(msg: ConfirmationEmail): Promise<'sent'> {
   const confirmUrl = escapeHtml(msg.confirmUrl);
 
   // Withdrawal must be at least as easy as giving consent (Art. 7(3) GDPR).
-  // The From address is send-only — eardium.com has no MX — so a working
-  // mailbox is named in the body AND offered as reply_to and List-Unsubscribe,
-  // rather than leaving a reply that would silently bounce.
+  // The one-click link is the primary route: it works without a reply path and
+  // without the recipient composing anything. A mailto: is offered alongside it
+  // only when a mailbox that genuinely receives is configured — the From
+  // address is send-only, so advertising it would bounce.
   const contactAddress = replyToAddress || Deno.env.get('PRIVACY_CONTACT_ADDRESS')?.trim();
-  const listUnsubscribe = contactAddress
-    ? { 'List-Unsubscribe': `<mailto:${contactAddress}?subject=Unsubscribe>` }
-    : undefined;
-  const withdrawLine = contactAddress
-    ? `You can be removed at any time by emailing ${contactAddress}.`
-    : '';
+  const targets = [
+    ...(msg.unsubscribeUrl ? [`<${msg.unsubscribeUrl}>`] : []),
+    ...(contactAddress ? [`<mailto:${contactAddress}?subject=Unsubscribe>`] : []),
+  ];
+  const headers: Record<string, string> = {};
+  if (targets.length > 0) {
+    headers['List-Unsubscribe'] = targets.join(', ');
+    // RFC 8058: lets the mail client unsubscribe without opening the link,
+    // which is what turns the header into a real one-click control in Gmail.
+    if (msg.unsubscribeUrl) headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+  }
+
+  const withdrawLine = msg.unsubscribeUrl
+    ? `Change your mind? Unsubscribe: ${msg.unsubscribeUrl}`
+    : contactAddress
+      ? `You can be removed at any time by emailing ${contactAddress}.`
+      : '';
+  const withdrawHtml = msg.unsubscribeUrl
+    ? `Change your mind? <a href="${escapeHtml(msg.unsubscribeUrl)}">Unsubscribe</a>.`
+    : withdrawLine
+      ? escapeHtml(withdrawLine)
+      : '';
 
   const payload = {
     to: msg.to,
     from: { address: fromAddress, name: fromName },
     ...(contactAddress ? { reply_to: contactAddress } : {}),
-    ...(listUnsubscribe ? { headers: listUnsubscribe } : {}),
+    ...(Object.keys(headers).length > 0 ? { headers } : {}),
     subject: 'Confirm your Eardium notification',
     text:
       `You asked to be notified when Eardium customisation is available.\n\n` +
@@ -87,7 +108,7 @@ async function sendWithCloudflare(msg: ConfirmationEmail): Promise<'sent'> {
       `<p><a href="${confirmUrl}">Confirm your email</a></p>` +
       '<p>If you did not request this, you can ignore this email — the link expires ' +
       'in 24 hours and the request is deleted about 30 days later.</p>' +
-      (withdrawLine ? `<p>${escapeHtml(withdrawLine)}</p>` : ''),
+      (withdrawHtml ? `<p>${withdrawHtml}</p>` : ''),
   };
 
   const endpoint =

@@ -88,6 +88,68 @@ describe('waitlist email dispatch', () => {
     expect(body.html).toContain('emailing hello@eardium.com');
   });
 
+  it('offers one-click unsubscribe ahead of the mailto fallback', async () => {
+    env.EMAIL_PROVIDER = 'cloudflare';
+    env.CLOUDFLARE_ACCOUNT_ID = 'account-id';
+    env.CLOUDFLARE_EMAIL_API_TOKEN = 'api-token';
+    env.EMAIL_FROM_ADDRESS = 'notify@eardium.com';
+    env.EMAIL_REPLY_TO_ADDRESS = 'hello@eardium.com';
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        result: { delivered: ['person@example.com'], queued: [], permanent_bounces: [] },
+      }),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await sendConfirmationEmail({
+      to: 'person@example.com',
+      confirmUrl: 'https://x/c?token=t',
+      unsubscribeUrl: 'https://x/c?unsubscribe=u',
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    // The URL must come first: mail clients use the first usable target.
+    expect(body.headers['List-Unsubscribe']).toBe(
+      '<https://x/c?unsubscribe=u>, <mailto:hello@eardium.com?subject=Unsubscribe>',
+    );
+    // RFC 8058 is what makes it a real one-click control rather than a link.
+    expect(body.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+    expect(body.text).toContain('https://x/c?unsubscribe=u');
+    expect(body.html).toContain('>Unsubscribe</a>');
+  });
+
+  it('still offers one-click when no receiving mailbox is configured', async () => {
+    env.EMAIL_PROVIDER = 'cloudflare';
+    env.CLOUDFLARE_ACCOUNT_ID = 'account-id';
+    env.CLOUDFLARE_EMAIL_API_TOKEN = 'api-token';
+    env.EMAIL_FROM_ADDRESS = 'notify@eardium.com';
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        result: { delivered: ['person@example.com'], queued: [], permanent_bounces: [] },
+      }),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await sendConfirmationEmail({
+      to: 'person@example.com',
+      confirmUrl: 'https://x/c',
+      unsubscribeUrl: 'https://x/c?unsubscribe=u',
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.reply_to).toBeUndefined();
+    expect(body.headers['List-Unsubscribe']).toBe('<https://x/c?unsubscribe=u>');
+    expect(body.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+  });
+
   it('falls back to the privacy contact when no reply-to is configured', async () => {
     env.EMAIL_PROVIDER = 'cloudflare';
     env.CLOUDFLARE_ACCOUNT_ID = 'account-id';

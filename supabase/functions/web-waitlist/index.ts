@@ -4,6 +4,7 @@
  *
  *   POST { action: "join", email }  → 202 { status: "pending" }
  *   GET  ?token=<confirm-token>     → confirms the subscription (link from the email)
+ *   GET|POST ?unsubscribe=<token>   → deletes the row (one-click; RFC 8058 POST)
  *
  * The waitlist table is deliberately free-standing: no account number, feed
  * token, folder contents, or listening selections are ever attached to an
@@ -76,6 +77,42 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // ─── Unsubscribe (one-click, GET or RFC 8058 POST) ──
+    // Handled before anything else so it works on both verbs and never
+    // depends on a reply path: the sending domain cannot receive mail.
+    const unsubscribeToken = new URL(req.url).searchParams.get('unsubscribe');
+    if (unsubscribeToken) {
+      if (!/^[A-Za-z0-9_-]{20,}$/.test(unsubscribeToken)) {
+        return textResponse('Invalid unsubscribe link.', 404);
+      }
+
+      const admin = getAdminClient();
+      const tokenHash = await sha256Hex(unsubscribeToken);
+      // Withdrawal is erasure here: there is no ongoing campaign to suppress
+      // against, so keeping the address to remember it opted out would retain
+      // more than honouring the request requires.
+      const { data, error } = await admin
+        .from('web_waitlist')
+        .delete()
+        .eq('unsubscribe_token_hash', tokenHash)
+        .select('id')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Waitlist unsubscribe error:', error);
+        return textResponse('Something went wrong. Please try the link again.', 500);
+      }
+      // Deliberately the same response whether or not a row was found: an
+      // already-unsubscribed link must not report back that the address is
+      // unknown, and a guessed token must not confirm a hit.
+      return textResponse(
+        data
+          ? 'Unsubscribed — your email address has been deleted. You can close this tab.'
+          : 'This link has already been used, or the address is no longer on the list. Nothing further is stored.',
+        200,
+      );
+    }
+
     // ─── Confirm (GET link from the email) ──────────────
     if (req.method === 'GET') {
       const token = new URL(req.url).searchParams.get('token');
@@ -115,6 +152,7 @@ Deno.serve(async (req: Request) => {
     if (req.method !== 'POST') {
       throw new ValidationError('POST or GET required');
     }
+
 
     const body = await readJsonBody(req);
 
@@ -193,6 +231,12 @@ Deno.serve(async (req: Request) => {
       const confirmTokenHash = await sha256Hex(confirmToken);
       const expiresAt = new Date(now.getTime() + CONFIRMATION_TTL_MS).toISOString();
 
+      // Separate from the confirmation token, which is single-use and cleared
+      // on confirm: this one must keep working for as long as the row exists,
+      // because that is when someone actually wants to unsubscribe.
+      const unsubscribeToken = generateUrlToken();
+      const unsubscribeTokenHash = await sha256Hex(unsubscribeToken);
+
       if (existing) {
         // Guarded update instead of a blind upsert: a confirmation landing
         // between the lookup above and this write must never be reverted to
@@ -206,6 +250,7 @@ Deno.serve(async (req: Request) => {
             consent_version: CONSENT_VERSION,
             requested_at: now.toISOString(),
             requested_ip: requestIp,
+            unsubscribe_token_hash: unsubscribeTokenHash,
           })
           .eq('id', existing.id)
           .is('confirmed_at', null)
@@ -227,6 +272,7 @@ Deno.serve(async (req: Request) => {
           consent_version: CONSENT_VERSION,
           requested_at: now.toISOString(),
           requested_ip: requestIp,
+          unsubscribe_token_hash: unsubscribeTokenHash,
         });
         if (insertError) {
           // 23505: a concurrent join created the row and owns the email send.
@@ -242,10 +288,12 @@ Deno.serve(async (req: Request) => {
       // neither the latency nor the status of the public reply. On failure the
       // row stays pending with confirmation_sent_at null, so the user can
       // simply submit the form again — no cooldown blocks the retry.
-      const confirmUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/web-waitlist?token=${confirmToken}`;
+      const functionsBase = `${Deno.env.get('SUPABASE_URL')}/functions/v1/web-waitlist`;
+      const confirmUrl = `${functionsBase}?token=${confirmToken}`;
+      const unsubscribeUrl = `${functionsBase}?unsubscribe=${unsubscribeToken}`;
       const dispatchTask = (async () => {
         try {
-          const dispatch = await sendConfirmationEmail({ to: raw, confirmUrl });
+          const dispatch = await sendConfirmationEmail({ to: raw, confirmUrl, unsubscribeUrl });
           if (dispatch === 'sent') {
             const { error: sentAtError } = await admin
               .from('web_waitlist')
