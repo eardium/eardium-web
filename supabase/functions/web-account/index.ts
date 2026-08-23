@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
 
     // ─── Create Account ─────────────────────────────────
     if (action === 'create') {
-      enforceRateLimit('account-create', req, 5);
+      await enforceRateLimit('account-create', req, 5);
       const admin = getAdminClient();
 
       let accountNumber = '';
@@ -128,7 +128,7 @@ Deno.serve(async (req: Request) => {
 
     // ─── Login ──────────────────────────────────────────
     if (action === 'login') {
-      enforceRateLimit('account-login', req, 30);
+      await enforceRateLimit('account-login', req, 30);
       const number = normalizeAccountNumber(body.account_number);
       const admin = getAdminClient();
       const hash = await hashAccountNumber(number);

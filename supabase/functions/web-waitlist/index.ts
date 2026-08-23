@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
 
     // ─── Join ───────────────────────────────────────────
     if (body.action === 'join') {
-      enforceRateLimit('waitlist-join', req, 10);
+      await enforceRateLimit('waitlist-join', req, 10);
 
       const raw = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
       if (!EMAIL_RE.test(raw) || raw.length > 254) {
