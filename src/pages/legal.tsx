@@ -31,7 +31,7 @@ export function ImpressumPage() {
 
       <h2>Kontakt</h2>
       <p>
-        E-Mail: <a href="mailto:m@geldchen.com">m@geldchen.com</a><br />
+        E-Mail: <a href="mailto:m@eardium.com">m@eardium.com</a><br />
         Telefon: +49 15678 848233
       </p>
 
@@ -83,7 +83,7 @@ export function PrivacyPage() {
         Eardium is operated by:<br />
         Maksim Palevich, Einzelunternehmen, trading as „Eardium“<br />
         Prenzlauer Promenade 183, 13189 Berlin, Germany<br />
-        Email: <a href="mailto:m@geldchen.com">m@geldchen.com</a> · Phone: +49 15678 848233
+        Email: <a href="mailto:m@eardium.com">m@eardium.com</a> · Phone: +49 15678 848233
       </p>
 
       <h2>2. The two Eardium products</h2>
@@ -139,13 +139,13 @@ export function PrivacyPage() {
         (Art. 6(1)(a) GDPR).
       </p>
       <p>
-        <strong>Withdrawing.</strong> Every message we send carries a{' '}
-        <code>List-Unsubscribe</code> header and names a mailbox that actually receives, and you
-        can reply to it directly or write to{' '}
-        <a href="mailto:m@geldchen.com">m@geldchen.com</a> at any time — one message is enough,
-        and we delete the entry. Withdrawal is therefore no harder than giving consent
-        (Art. 7(3) GDPR). Not confirming in the first place also works: an unconfirmed request
-        expires by itself.
+        <strong>Withdrawing.</strong> Every message we send carries a one-click unsubscribe
+        link — both as a plain link in the message and as the <code>List-Unsubscribe</code>{' '}
+        header your mail app uses to show its own unsubscribe button. One click deletes your
+        address; there is nothing to fill in and no account to sign into. You can also reply to
+        the message, or write to <a href="mailto:m@eardium.com">m@eardium.com</a>. Withdrawal is
+        therefore no harder than giving consent (Art. 7(3) GDPR). Not confirming in the first
+        place also works: an unconfirmed request expires by itself.
       </p>
       <p>
         The consent record consists of when you asked, when we sent the confirmation, when you
@@ -297,7 +297,7 @@ export function PrivacyPage() {
         (Art. 17), restriction (Art. 18), portability (Art. 20), and objection (Art. 21). Where
         processing is based on consent you may withdraw it at any time without affecting the
         lawfulness of processing before withdrawal (Art. 7(3)). To exercise any of these, email{' '}
-        <a href="mailto:m@geldchen.com">m@geldchen.com</a>.
+        <a href="mailto:m@eardium.com">m@eardium.com</a>.
       </p>
       <p>
         Please note that for number-only accounts we hold no information that identifies you, so
