@@ -3,11 +3,21 @@
  * (account create/login, waitlist join).
  *
  * State is a fixed window kept in isolate memory, so limits reset whenever the
- * function cold-starts and are not shared across isolates. That still stops
- * naive loops — the cheap way to spam confirmation emails at arbitrary
- * addresses or fill web_accounts — while never affecting a real user.
- * Platform-level protection (WAF / edge rate rules) remains the durable answer
- * for a determined attacker.
+ * function cold-starts and are not shared across isolates.
+ *
+ * MEASURED 2026-08-23 against the deployed project: this does NOT currently
+ * limit anything. 8 sequential and 12 parallel account-create calls from one IP
+ * (limit 5) all returned 200. The client IP resolves correctly — a header probe
+ * confirmed `cf-connecting-ip` and `x-forwarded-for` are both present — so the
+ * limiter is not failing open on a missing IP; requests simply land on fresh
+ * isolates whose Map is empty. Supabase recycles isolates aggressively enough
+ * that an in-memory counter effectively never accumulates.
+ *
+ * Keep it: it is harmless, costs nothing, and will catch a burst that does share
+ * an isolate. But do not count it as the login-rate-limiting item on the
+ * pre-tester gate, and do not assume the confirmation-email spray vector is
+ * closed. A durable fix needs shared state (a Postgres counter table keyed by
+ * IP+bucket, or platform/WAF edge rate rules).
  */
 
 import { QuotaError } from './errors.ts';

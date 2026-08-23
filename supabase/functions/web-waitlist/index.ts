@@ -104,13 +104,16 @@ Deno.serve(async (req: Request) => {
       const now = new Date();
 
       // Every early exit below performs the same one-write shape as the real
-      // path so response timing does not separate the outcomes; the values
-      // written are unchanged.
-      const balanceTiming = async (id: string): Promise<void> => {
+      // path so response timing does not separate the outcomes. The row's own
+      // consent_version is written back verbatim — never the current
+      // CONSENT_VERSION constant, which would silently restamp an
+      // already-confirmed subscriber as having consented to a version they
+      // never saw once that constant is bumped.
+      const balanceTiming = async (row: { id: string; consent_version: string }): Promise<void> => {
         const { error: balanceError } = await admin
           .from('web_waitlist')
-          .update({ consent_version: CONSENT_VERSION })
-          .eq('id', id);
+          .update({ consent_version: row.consent_version })
+          .eq('id', row.id);
         if (balanceError) {
           console.error('Waitlist balancing update error:', balanceError);
         }
@@ -118,7 +121,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: existing, error: lookupError } = await admin
         .from('web_waitlist')
-        .select('id, confirmed_at, confirmation_sent_at')
+        .select('id, confirmed_at, confirmation_sent_at, consent_version')
         .eq('email', raw)
         .maybeSingle();
       if (lookupError) {
@@ -127,7 +130,7 @@ Deno.serve(async (req: Request) => {
       }
 
       if (existing?.confirmed_at) {
-        await balanceTiming(existing.id);
+        await balanceTiming(existing);
         return jsonResponse({ status: 'pending' }, 202);
       }
 
@@ -135,7 +138,7 @@ Deno.serve(async (req: Request) => {
         ? Date.parse(existing.confirmation_sent_at)
         : Number.NaN;
       if (existing && Number.isFinite(sentAt) && now.getTime() - sentAt < RESEND_COOLDOWN_MS) {
-        await balanceTiming(existing.id);
+        await balanceTiming(existing);
         return jsonResponse({ status: 'pending' }, 202);
       }
 
