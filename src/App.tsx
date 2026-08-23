@@ -19,6 +19,7 @@ import {
 import { KaraokePlayer } from './components/KaraokePlayer';
 import { SubscribePanel } from './components/SubscribePanel';
 import { parseHash } from './router';
+import { ImpressumPage, PrivacyPage } from './pages/legal';
 import { CATEGORY_CONTENT } from './shared/content/categories';
 import { getAllCatalogEntries, getCatalogByCategory, getCatalogEntry } from './shared/content/catalog';
 import { getComingSoon } from './shared/content/coming-soon';
@@ -44,7 +45,13 @@ const SUGGESTED_FOLDERS = [
 function useRoute(): Route {
   const [route, setRoute] = useState(() => parseHash(window.location.hash));
   useEffect(() => {
-    const update = () => setRoute(parseHash(window.location.hash));
+    const update = () => {
+      setRoute(parseHash(window.location.hash));
+      // A hash change does not reset the scroll offset, so following a link
+      // from far down one page opened the next one part-scrolled. Most visible
+      // on the long legal pages, but it affects every route.
+      window.scrollTo(0, 0);
+    };
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
   }, []);
@@ -491,7 +498,7 @@ function AccountPage({ accountNumber, setAccountNumber, setFolders }: AccountPag
       {status && <p className="form-status">{status}</p>}
 
       <form className="waitlist" onSubmit={waitlist}>
-        <div><p className="eyebrow">Optional and separate</p><h2>Tell me when customisation arrives.</h2><p>This email is not connected to your account, folders, or listening selections.</p></div>
+        <div><p className="eyebrow">Optional and separate</p><h2>Tell me when customisation arrives.</h2><p>This email is not connected to your account, folders, or listening selections. We send one confirmation link, then one message when it&rsquo;s ready &mdash; nothing else. <a href="#/privacy">What we store and why</a>.</p></div>
         <div className="inline-form"><label htmlFor="waitlist-email">Email</label><input id="waitlist-email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /><button className="button" type="submit">Send confirmation</button></div>
       </form>
       {accountNumber && <button className="text-button text-button--danger" type="button" onClick={removeAccount}>Delete account and all feeds</button>}
@@ -568,6 +575,8 @@ export function App() {
       case 'folder': return <FolderPage id={route.id} accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} foldersStatus={foldersStatus} />;
       case 'subscribe': return <SubscribePage token={route.token} />;
       case 'account': return <AccountPage accountNumber={accountNumber} setAccountNumber={setAccountNumber} setFolders={setFolders} />;
+      case 'impressum': return <ImpressumPage />;
+      case 'privacy': return <PrivacyPage />;
       default: return <NotFoundPage />;
     }
   }, [accountNumber, folders, foldersStatus, refreshFolders, route]);
@@ -576,10 +585,22 @@ export function App() {
     <div className="site-shell">
       {!handoffOnly && <PageHeader accountNumber={accountNumber} />}
       <main>{page}</main>
+      {handoffOnly && (
+        <footer className="footer--minimal">
+          <span className="footer__legal">
+            <a href="#/impressum">Impressum</a>
+            <a href="#/privacy">Privacy</a>
+          </span>
+        </footer>
+      )}
       {!handoffOnly && (
         <footer>
           <span>Eardium · rehearsal for the moment ahead</span>
           <span>Private feeds are capability links. Keep them private.</span>
+          <span className="footer__legal">
+            <a href="#/impressum">Impressum</a>
+            <a href="#/privacy">Privacy</a>
+          </span>
         </footer>
       )}
     </div>

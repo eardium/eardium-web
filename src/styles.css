@@ -384,3 +384,21 @@ footer { display: flex; justify-content: space-between; gap: 30px; width: min(11
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* ── Legal pages (Impressum / Privacy) ─────────────────────────── */
+.legal-page { max-width: 780px; }
+.legal-page h1 { font-size: clamp(2.6rem, 6vw, 4.2rem); margin-bottom: 12px; }
+.legal-page h2 { margin: 46px 0 14px; font-size: 1.24rem; letter-spacing: -0.01em; }
+.legal-page h3 { margin: 34px 0 12px; color: var(--ember); font-size: 1rem; letter-spacing: 0.02em; }
+.legal-page p { margin: 0 0 16px; color: var(--muted); line-height: 1.72; font-size: 0.94rem; }
+.legal-page a { color: var(--cream); text-decoration: underline; text-underline-offset: 3px; }
+.legal-page a:hover { color: var(--ember); }
+.legal-page strong { color: var(--cream); font-weight: 640; }
+.legal-page__list { margin: 0 0 18px; padding-left: 20px; color: var(--muted); line-height: 1.72; font-size: 0.94rem; }
+.legal-page__list li { margin-bottom: 12px; }
+.legal-page__stand { margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 0.8rem; }
+
+.footer__legal { display: flex; gap: 18px; }
+.footer__legal a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.footer__legal a:hover { color: var(--cream); }
+footer.footer--minimal { justify-content: center; }

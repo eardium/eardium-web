@@ -20,4 +20,6 @@ export type Route =
   | { name: 'folder'; id: string }
   | { name: 'subscribe'; token: string }
   | { name: 'account' }
+  | { name: 'impressum' }
+  | { name: 'privacy' }
   | { name: 'not-found' };

@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
 
     // ─── Create Account ─────────────────────────────────
     if (action === 'create') {
-      await enforceRateLimit('account-create', req, 5);
+      await enforceRateLimit('account-create', req, 10);
       const admin = getAdminClient();
 
       let accountNumber = '';

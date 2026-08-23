@@ -20,5 +20,7 @@ export function parseHash(hash: string): Route {
   if (parts[0] === 'folders') return { name: 'folders' };
   if (parts[0] === 'subscribe' && parts[1]) return { name: 'subscribe', token: parts[1] };
   if (parts[0] === 'account') return { name: 'account' };
+  if (parts[0] === 'impressum') return { name: 'impressum' };
+  if (parts[0] === 'privacy') return { name: 'privacy' };
   return { name: 'not-found' };
 }
