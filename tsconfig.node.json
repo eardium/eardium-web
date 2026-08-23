@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "vite.config.ts",
+    "scripts/**/*.ts",
+    "src/shared/content/catalog/**/*.ts",
+    "src/shared/types/**/*.ts"
+  ]
+}
