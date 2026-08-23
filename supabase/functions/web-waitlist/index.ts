@@ -34,7 +34,12 @@ import { sendConfirmationEmail } from '../_shared/email.ts';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 5 * 60 * 1000;
-const CONSENT_VERSION = 'waitlist-v1';
+// Bumped to v2 when requested_ip/confirmed_ip were added: that is a new
+// category of personal data, so rows written before and after the change carry
+// materially different processing and must not share one identifier. The
+// consent text each version refers to is recorded (append-only) in the
+// administrative repo at eardium/site/legal/waitlist-consent.md.
+const CONSENT_VERSION = 'waitlist-v2';
 const PURGE_UNCONFIRMED_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Run `task` after the response via EdgeRuntime.waitUntil when available.
