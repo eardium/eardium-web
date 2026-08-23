@@ -132,4 +132,22 @@ Set `CONTENT_SAFETY_APPROVED` only after the human disposition and audio gates b
   SHA-256 hash — so this step cannot be driven from the CLI and needs a human to
   click the link.
 - Smoke-test account creation/login/deletion, folder ownership, token rotation, exact QR payload, podcast-app handoff, feed XML/byte ranges, poll timestamps, and double opt-in.
-- Add login rate limiting and the documented inactivity-expiry rule before sharing with testers.
+- Add the documented inactivity-expiry rule before sharing with testers. Login rate limiting is
+  **done** — but note the first attempt (an in-memory Map) measurably limited nothing, because
+  Supabase recycles Edge Function isolates faster than a counter can accumulate. It is now a
+  Postgres counter, verified live at 10 account-creates then 429. Do not reintroduce in-process
+  rate limiting here and assume it works.
+
+## 5. Operating notes
+
+- **Rate limits bite during testing.** Account creation is 10/hour per IP on fixed hourly windows,
+  so a test run can lock you out. Clear the counters with a service-role delete on
+  `web_rate_limits` rather than waiting for the window.
+- **Re-link after a fresh clone.** `supabase/.temp/` is gitignored per-machine state, so any deploy
+  needs `npx supabase link --project-ref awiqbatbdkgxyulqbvfo` first.
+- **`deno check` is not optional.** The Supabase deploy bundler strips types rather than checking
+  them, so a function can deploy and run correctly while still failing the type check. CI runs it;
+  run it locally before deploying too.
+- **Never test sends against a real person's address.** A join writes a genuine consent row —
+  timestamps and IP — for a consent that was never given. Use a disposable address, or inject a
+  known token via service role to exercise a link without sending.

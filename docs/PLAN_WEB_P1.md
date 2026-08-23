@@ -124,16 +124,62 @@ See the launch checklist below.
 4. Pages live; noindex + no-referrer present; `#/subscribe/<token>` works with no account.
 5. E2E: subtitles track whisper timing (calm + lfg; offline → estimated fallback); account create → persist → logout → login; 3-session folder → subscribe in a real podcast app → order/artwork/playback; add 4th → arrives; phone scans desktop QR → subscribe route → subscribes; poll timestamps advancing.
 
-## Launch checklist (manual actions once connected)
+## Launch status
 
-1. **Manifest complete (2026-08-16):** all 46 public MP3s returned true byte sizes; the committed `catalog-manifest.json` now carries the 37 shipped entries.
-2. **Preflight complete (2026-08-16):** timestamp JSON and MP3 return `access-control-allow-origin: *`; MP3 returns `content-length` and `accept-ranges: bytes`.
-3. **Create/link the dedicated web Supabase project, then apply DB + deploy functions**: `npx supabase db push` · `npx supabase functions deploy web-account web-folders web-waitlist feed`.
-4. **Content-safety dispositions applied (2026-08-21):** every flagged entry excluded from the shipped catalog; no rewrites, so no re-synthesis. Confirm the exclusion set in PR review, then set `CONTENT_SAFETY_APPROVED=true`.
-5. **eardium-web repo**: Settings → Pages → Source = **GitHub Actions**; merge its PR → site deploys.
-6. **Activate Cloudflare email**: keep Google Workspace's root MX/SPF/DKIM for inbound aliases; onboard `eardium.com` under Email Service → Email Sending only (never Routing), keep message preview off, create an account-owned token with only `Email Sending: Edit`, then set the provider configuration listed in `docs/EMAIL_PROVIDER_DECISION.md`.
-7. Mark native-app PR #68 superseded after confirming this repository contains the complete web slice.
-8. Pre-tester gate (before sharing the URL): Supabase paid tier (free auto-pause kills feeds), login rate limiting, inactivity-expiry retention rule, optionally custom domain.
+**Staging is live and unannounced at `https://eardium.github.io/eardium-web/`** (merged 2026-08-23,
+`noindex` + `no-referrer`). The URL has not been shared. Current posture: monitor before widening.
+
+### Done
+
+1. **Manifest (2026-08-16):** all 46 public MP3s returned true byte sizes; the committed
+   `catalog-manifest.json` carries the 37 shipped entries.
+2. **Preflight (2026-08-16):** timestamp JSON and MP3 return `access-control-allow-origin: *`;
+   MP3 returns `content-length` and `accept-ranges: bytes`.
+3. **Content-safety dispositions applied (2026-08-21):** every entry with a flagged passage
+   excluded, 46 → 37, so no re-synthesis was needed. Enforced server-side: `add_item` returns 400
+   for an excluded id, not just a UI filter. `CONTENT_SAFETY_APPROVED=true` is set.
+4. **Dedicated Supabase project (2026-08-21):** `eardium-web` / `awiqbatbdkgxyulqbvfo`,
+   `eu-central-1`, Free tier. Migrations applied, four functions deployed, secrets set.
+   **`WEB_ACCOUNT_HASH_KEY` is unrecoverable** — accounts carry no email or password, so losing it
+   strands every account number ever issued. Keep a copy outside Supabase.
+5. **Cloudflare email (2026-08-21..23):** `eardium.com` onboarded for Email Sending only.
+   Onboarding writes `_dmarc p=reject` at the **zone root** — safe here only because Workspace DKIM
+   authentication is actually started; verify that before onboarding any other domain, or it
+   silently hard-bounces that domain's existing outbound.
+6. **Inbound mail (2026-08-23):** root `MX 1 smtp.google.com` added, matching the other domains in
+   the account. Verified by round trip — a message from `notify@eardium.com` arrived at
+   `m@eardium.com` with SPF, DKIM and DMARC passing. No root SPF was added, deliberately: Workspace
+   passes on DKIM alignment, and a Cloudflare-only SPF would make it fail.
+7. **Pages (2026-08-23):** source = GitHub Actions; PR #1 merged; site deploys on push to `main`.
+8. **Legal pages served by the app itself** — `#/impressum` and `#/privacy`, linked from the footer
+   (including the subscribe handoff) and from the waitlist form at the point of consent.
+9. **Native-app PR #68 superseded** — this repository owns the complete web slice.
+
+### Verified against the deployed backend
+
+- 22/22 backend smoke checks; 25/25 unit tests; `deno check` clean on all four functions.
+- Poll retention: timestamps start null, both stamp on first poll, then `first_polled_at` holds
+  while `last_polled_at` advances.
+- RLS deny-all: the anon key reads `[]` from `web_folders` and `web_waitlist`.
+- Rate limiting: **in-memory limiting measurably did nothing** (isolates recycle); replaced with a
+  Postgres counter, now verified at 10 account-creates then 429.
+- Double opt-in end to end, including one-click unsubscribe deleting the row.
+
+### Open — monitor first, then decide
+
+- **E2E on real devices is still the main gap.** Subscribing a folder in a real podcast app,
+  scanning the desktop QR from a phone, and checking subtitle timing against the audio have not
+  been done. The email flow *has* been exercised on a real mailbox.
+- **Pre-tester gate:** Supabase paid tier (free-tier pause needs a *manual* dashboard restore, and
+  would break feeds mid-cohort — contaminating the very retention signal P1 measures), account
+  inactivity expiry (documented only, no code), and the unconfirmed-row purge running on join
+  traffic rather than a schedule (`pg_cron` would be the durable form).
+- **Legal publication:** `eardium-legal#1` and `administrative#14` carry the notices for the iOS
+  app. Until `eardium-legal#1` merges, the **live iOS app's** Impressum is missing the USt-IdNr
+  issued 2026-08-08.
+- **Native catalog decision:** the iOS app still ships all 46 sessions, including the HIGH-severity
+  one, in a build live in the App Store. The web and native catalogs have diverged and native has
+  had no disposition applied.
 
 ## Possible routes after P1
 
