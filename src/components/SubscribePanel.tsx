@@ -35,9 +35,9 @@ export function SubscribePanel({ token, compact = false }: SubscribePanelProps) 
       )}
       <div className="subscribe__body">
         <p className="eyebrow">Private podcast feed</p>
-        <h2>{compact ? 'Add this feed' : 'Scan once. Listen in your podcast app.'}</h2>
+        <h2>{compact ? 'Add this feed' : 'Listen in your podcast app'}</h2>
         <p>
-          The QR opens this handoff page on your phone. Use an app button or copy the feed URL.
+          Scan the code to open this page on your phone, then use an app button or copy the feed URL.
         </p>
         <div className="button-row">
           <a className="button button--secondary" href={links.apple}>Apple Podcasts</a>
