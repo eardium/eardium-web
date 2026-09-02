@@ -131,54 +131,57 @@ export function KaraokePlayer({ entry }: KaraokePlayerProps) {
         onEnded={() => setIsPlaying(false)}
         onError={() => setError('This audio is not available right now. Please try again later.')}
       />
-      <div className="player__layout">
-        <div className="player__console">
-          <div className="player__status">
-            <span className={isPlaying ? 'player__status-dot is-playing' : 'player__status-dot'} />
-            {isPlaying ? 'Playing' : currentTime > 0 ? 'Paused' : 'Ready'}
-          </div>
-          <button
-            className="player__play"
-            type="button"
-            onClick={togglePlayback}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-          >
-            <span aria-hidden="true">{isPlaying ? 'Ⅱ' : '▶'}</span>
-          </button>
-          <div className="player__progress">
-            <input
-              aria-label="Playback position"
-              type="range"
-              min="0"
-              max={Math.max(duration, 0.1)}
-              step="0.1"
-              value={Math.min(currentTime, duration)}
-              onChange={(event) => seekTo(Number(event.currentTarget.value))}
-              style={{ '--progress': `${progress}%` } as CSSProperties}
-            />
-            <div className="player__time">
-              <span>{formatPlayerTime(currentTime)}</span>
-              <span>{formatPlayerTime(duration)}</span>
-            </div>
-          </div>
-          <div className="player__transport" aria-label="Playback controls">
-            <button type="button" onClick={() => seekTo(currentTime - 10)} aria-label="Back 10 seconds">−10</button>
-            <button type="button" onClick={cyclePlaybackRate} aria-label={`Playback speed ${playbackRate} times`}>{playbackRate}×</button>
-            <button type="button" onClick={() => seekTo(currentTime + 10)} aria-label="Forward 10 seconds">+10</button>
-            <button type="button" onClick={toggleMuted} aria-label={isMuted ? 'Unmute' : 'Mute'}>{isMuted ? 'Sound on' : 'Mute'}</button>
-          </div>
-          <span className="player__timing-badge">
-            {timestamps ? 'Word-timed transcript' : 'Estimated transcript timing'}
-          </span>
-          {error && <p className="player__error" role="alert">{error}</p>}
+      <div className="player__bar">
+        <button
+          className="player__play"
+          type="button"
+          onClick={togglePlayback}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? (
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="3" y="2" width="3.5" height="12" fill="currentColor" />
+              <rect x="9.5" y="2" width="3.5" height="12" fill="currentColor" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
+            </svg>
+          )}
+        </button>
+        <div className="player__transport" aria-label="Playback controls">
+          <button type="button" onClick={() => seekTo(currentTime - 10)} aria-label="Back 10 seconds">−10</button>
+          <button type="button" onClick={() => seekTo(currentTime + 10)} aria-label="Forward 10 seconds">+10</button>
+          <button type="button" onClick={cyclePlaybackRate} aria-label={`Playback speed ${playbackRate} times`}>{playbackRate}×</button>
+          <button type="button" onClick={toggleMuted} aria-label={isMuted ? 'Unmute' : 'Mute'}>{isMuted ? 'Sound on' : 'Mute'}</button>
         </div>
-        <div className="player__script">
-          <div className="player__script-heading">
-            <span>Live transcript</span>
-            <span>{parsed.totalWords} words</span>
-          </div>
-          <div className="transcript" ref={transcriptRef} aria-live="off" aria-label="Transcript">
-            {parsed.segments.map((segment, segmentIndex) => {
+        <div className="player__progress">
+          <span>{formatPlayerTime(currentTime)}</span>
+          <input
+            aria-label="Playback position"
+            type="range"
+            min="0"
+            max={Math.max(duration, 0.1)}
+            step="0.1"
+            value={Math.min(currentTime, duration)}
+            onChange={(event) => seekTo(Number(event.currentTarget.value))}
+            style={{ '--progress': `${progress}%` } as CSSProperties}
+          />
+          <span>{formatPlayerTime(duration)}</span>
+        </div>
+        <div className="player__status">
+          <span className={isPlaying ? 'player__status-dot is-playing' : 'player__status-dot'} />
+          {isPlaying ? 'Playing' : currentTime > 0 ? 'Paused' : 'Ready'}
+        </div>
+      </div>
+      {error && <p className="player__error" role="alert">{error}</p>}
+      <div className="player__script">
+        <div className="player__script-heading">
+          <span>Transcript · {timestamps ? 'word-timed' : 'estimated timing'}</span>
+          <span>{parsed.totalWords} words</span>
+        </div>
+        <div className="transcript" ref={transcriptRef} aria-live="off" aria-label="Transcript">
+          {parsed.segments.map((segment, segmentIndex) => {
               if (segment.isPause) {
                 return (
                   <div
@@ -217,7 +220,6 @@ export function KaraokePlayer({ entry }: KaraokePlayerProps) {
                 </button>
               );
             })}
-          </div>
         </div>
       </div>
       <p className="player__note">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   ApiError,
   createAccount,
@@ -21,8 +21,14 @@ import { SubscribePanel } from './components/SubscribePanel';
 import { parseHash } from './router';
 import { ImpressumPage, PrivacyPage } from './pages/legal';
 import { CATEGORY_CONTENT } from './shared/content/categories';
-import { getAllCatalogEntries, getCatalogByCategory, getCatalogEntry } from './shared/content/catalog';
+import {
+  getAllCatalogEntries,
+  getCatalogByCategory,
+  getCatalogEntry,
+  type CatalogEntry,
+} from './shared/content/catalog';
 import { getComingSoon } from './shared/content/coming-soon';
+import { VIBE_DEFINITIONS } from './shared/content/vibes';
 import type { Category } from './shared/types';
 import type { Folder, Route } from './types';
 
@@ -42,6 +48,12 @@ const SUGGESTED_FOLDERS = [
   { name: 'Daily Foundations', detail: 'Short, repeatable rehearsal practice' },
 ];
 
+type FoldersStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+function minutes(entry: CatalogEntry): string {
+  return `${Math.round(entry.duration_seconds / 60)} min`;
+}
+
 function useRoute(): Route {
   const [route, setRoute] = useState(() => parseHash(window.location.hash));
   useEffect(() => {
@@ -58,131 +70,150 @@ function useRoute(): Route {
   return route;
 }
 
-function PageHeader({ accountNumber }: { accountNumber: string | null }) {
+/* ── Shell ─────────────────────────────────────────────────────── */
+
+function PageHeader({ route, accountNumber }: { route: Route; accountNumber: string | null }) {
+  const onCatalog = route.name === 'home' || route.name === 'category' || route.name === 'session';
+  const onFeeds = route.name === 'folders' || route.name === 'folder' || route.name === 'account';
   return (
-    <header className="site-header">
-      <a className="brand" href="#/" aria-label="Eardium home">
-        <span className="brand__mark" aria-hidden="true">e</span>
-        <span>Eardium</span>
-      </a>
-      <nav aria-label="Primary navigation">
-        <a href="#/">Catalog</a>
-        <a href="#/folders">Folders</a>
-        <a href="#/account">{accountNumber ? 'Account' : 'Save your feed'}</a>
-      </nav>
+    <header className="top">
+      <div className="top__inner">
+        <a className="brand" href="#/" aria-label="Eardium home">
+          <span className="brand__mark" aria-hidden="true" />
+          <span>Eardium</span>
+        </a>
+        <nav aria-label="Primary navigation">
+          <a className={onCatalog ? 'is-active' : undefined} href="#/">Catalog</a>
+          <a className={onFeeds ? 'is-active' : undefined} href="#/folders">Feeds</a>
+        </nav>
+        <a className="top__account" href="#/account" aria-label="Account">
+          {accountNumber ? `Account ···· ${accountNumber.slice(-4)}` : 'No account'}
+        </a>
+      </div>
     </header>
   );
 }
 
-function SessionCard({ id }: { id: string }) {
-  const entry = getCatalogEntry(id);
-  if (!entry) return null;
-  const category = CATEGORY_CONTENT[entry.category];
+function PageFooter() {
   return (
-    <a className="session-card" href={`#/s/${entry.id}`} style={{ '--accent': category.color } as CSSProperties}>
-      <span className="session-card__meta">{category.label} · {entry.vibe}</span>
-      <strong>{entry.title}</strong>
-      <span>{entry.scenario}</span>
-      <span className="session-card__duration">{Math.round(entry.duration_seconds / 60)} min</span>
-    </a>
+    <footer>
+      <div className="footer__inner">
+        <span>Eardium · rehearsal for the moment ahead</span>
+        <span className="footer__legal">
+          <a href="#/impressum">Impressum</a>
+          <a href="#/privacy">Privacy</a>
+        </span>
+      </div>
+    </footer>
   );
 }
 
-function HomePage() {
-  const featured = getAllCatalogEntries().filter((entry) => entry.is_free).slice(0, 6);
+/* ── Catalog (home + category filter) ──────────────────────────── */
+
+function SessionRow({ entry }: { entry: CatalogEntry }) {
+  return (
+    <li>
+      <a className="row" href={`#/s/${entry.id}`}>
+        <span className="row__title">{entry.title}</span>
+        <span className="row__scenario">{entry.scenario}</span>
+        <span className="row__meta">{VIBE_DEFINITIONS[entry.vibe].name}</span>
+        <span className="row__dur">{minutes(entry)}</span>
+      </a>
+    </li>
+  );
+}
+
+function HomePage({ category, accountNumber }: { category?: Category; accountNumber: string | null }) {
+  const all = getAllCatalogEntries();
+  const groups = CATEGORY_ORDER
+    .map((id) => ({
+      id,
+      label: CATEGORY_CONTENT[id].label,
+      entries: getCatalogByCategory(id),
+      coming: getComingSoon(id),
+    }))
+    .filter((group) => group.entries.length || group.coming.length);
+  const visible = category ? groups.filter((group) => group.id === category) : groups;
+
   return (
     <>
-      <section className="hero">
+      <section className="lede">
         <div>
-          <p className="eyebrow">Mental rehearsal, delivered simply</p>
-          <h1>Hear the moment before it arrives.</h1>
-          <p className="hero__lead">
-            Choose a guided rehearsal, listen with the words in view, then place it in a private
-            folder that follows you into your podcast app.
+          <h1>Rehearse the moment before it arrives.</h1>
+          <p className="lede__text">
+            Guided mental-rehearsal audio with the words in view. Listen here, or place sessions in a
+            private folder that your podcast app follows.
           </p>
-          <div className="button-row">
-            <a className="button" href="#/c/running">Browse the catalog</a>
-            <a className="button button--ghost" href="#/folders">Build a private feed</a>
-          </div>
         </div>
-        <div className="hero__signal" aria-hidden="true">
-          <div className="signal-orb" />
-          <p>prepare · hear · arrive</p>
-        </div>
-      </section>
-
-      <section className="section" id="catalog">
-        <div className="section-heading">
+        <dl className="facts">
           <div>
-            <p className="eyebrow">Start with the situation</p>
-            <h2>What are you preparing for?</h2>
+            <dt>Catalog</dt>
+            <dd>{all.length} sessions across {groups.filter((g) => g.entries.length).length} situations</dd>
           </div>
-          <span>{getAllCatalogEntries().length} catalog sessions</span>
-        </div>
-        <div className="category-grid">
-          {CATEGORY_ORDER.map((categoryId) => {
-            const category = CATEGORY_CONTENT[categoryId];
-            const count = getCatalogByCategory(categoryId).length;
-            return (
-              <a
-                className="category-card"
-                href={`#/c/${categoryId}`}
-                key={categoryId}
-                style={{ '--accent': category.color } as CSSProperties}
-              >
-                <span className="category-card__count">{String(count).padStart(2, '0')}</span>
-                <h3>{category.label}</h3>
-                <p>{category.quick_picks[0]?.description || 'Build familiarity through guided rehearsal.'}</p>
-                <span className="category-card__link">Explore →</span>
-              </a>
-            );
-          })}
-        </div>
+          <div>
+            <dt>Account</dt>
+            <dd>A random 16-digit number. No email.</dd>
+          </div>
+          <div>
+            <dt>Delivery</dt>
+            <dd>One private RSS link per folder.</dd>
+          </div>
+        </dl>
       </section>
 
-      <section className="section">
-        <div className="section-heading"><h2>Open a session</h2><span>Listen before saving anything</span></div>
-        <div className="session-grid">
-          {featured.map((entry) => <SessionCard id={entry.id} key={entry.id} />)}
-        </div>
+      <section id="catalog" aria-label="Catalog">
+        <nav className="filter" aria-label="Filter by situation">
+          <a className={category ? undefined : 'is-active'} href="#/">
+            All<span>{all.length}</span>
+          </a>
+          {groups.map((group) => (
+            <a
+              className={group.id === category ? 'is-active' : undefined}
+              href={`#/c/${group.id}`}
+              key={group.id}
+            >
+              {group.label}<span>{group.entries.length}</span>
+            </a>
+          ))}
+        </nav>
+
+        {visible.map((group) => (
+          <div className="group" key={group.id}>
+            <div className="group__head">
+              <h2>{group.label}</h2>
+              <span>
+                {group.entries.length} {group.entries.length === 1 ? 'session' : 'sessions'}
+                {group.coming.length ? ` · ${group.coming.length} coming` : ''}
+              </span>
+            </div>
+            <ol className="rows">
+              {group.entries.map((entry) => <SessionRow entry={entry} key={entry.id} />)}
+              {group.coming.length > 0 && (
+                <li className="row row--soon">
+                  <span className="row__meta">Coming soon</span>
+                  <span>{group.coming.map((entry) => entry.title).join(' · ')}</span>
+                </li>
+              )}
+            </ol>
+          </div>
+        ))}
       </section>
 
-      <section className="privacy-strip">
-        <p className="eyebrow">Deliberately small account surface</p>
-        <h2>No email is required to use the catalog or create folders.</h2>
-        <p>
-          A random 16-digit number restores your folders. Email is collected only if you separately
-          ask to hear when customisation becomes available.
-        </p>
+      <section className="strip">
+        <div>
+          <h2>Folders become private podcast feeds.</h2>
+          <p>
+            Add sessions to a folder; each folder has one private RSS link. Restore your folders on
+            any device with the 16-digit number. Nothing enters a feed unless you add it.
+          </p>
+        </div>
+        <a className="button" href="#/folders">{accountNumber ? 'Open your feeds' : 'Create a feed'}</a>
       </section>
     </>
   );
 }
 
-function CategoryPage({ categoryId }: { categoryId: string }) {
-  const category = CATEGORY_CONTENT[categoryId as Category];
-  if (!category) return <NotFoundPage />;
-  const entries = getCatalogByCategory(category.category);
-  const coming = getComingSoon(category.category);
-  return (
-    <section className="page">
-      <a className="back-link" href="#/">← Catalog</a>
-      <p className="eyebrow">{category.domain}</p>
-      <h1>{category.label}</h1>
-      <p className="page__intro">Choose the situation closest to the moment you want to rehearse.</p>
-      <div className="session-grid">
-        {entries.map((entry) => <SessionCard id={entry.id} key={entry.id} />)}
-        {coming.map((entry) => (
-          <article className="session-card session-card--soon" key={entry.id}>
-            <span className="session-card__meta">Coming soon</span>
-            <strong>{entry.title}</strong>
-            <span>{entry.teaser}</span>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
+/* ── Session ───────────────────────────────────────────────────── */
 
 interface SessionPageProps {
   id: string;
@@ -199,6 +230,7 @@ function SessionPage({ id, accountNumber, folders, refreshFolders }: SessionPage
     if (!folderId && folders[0]) setFolderId(folders[0].id);
   }, [folderId, folders]);
   if (!entry) return <NotFoundPage />;
+  const category = CATEGORY_CONTENT[entry.category];
 
   async function addToFolder(): Promise<void> {
     if (!accountNumber || !folderId) return;
@@ -212,11 +244,14 @@ function SessionPage({ id, accountNumber, folders, refreshFolders }: SessionPage
   }
 
   return (
-    <section className="page session-page">
-      <a className="back-link" href={`#/c/${entry.category}`}>← {CATEGORY_CONTENT[entry.category].label}</a>
-      <div className="session-heading">
+    <section className="page">
+      <div className="session-head">
         <div>
-          <p className="eyebrow">{entry.vibe} · {Math.round(entry.duration_seconds / 60)} minutes</p>
+          <p className="crumbs">
+            <a href="#/">Catalog</a><span aria-hidden="true">/</span>
+            <a href={`#/c/${entry.category}`}>{category.label}</a>
+          </p>
+          <p className="meta">{VIBE_DEFINITIONS[entry.vibe].name} · {minutes(entry)}</p>
           <h1>{entry.title}</h1>
           <p className="page__intro">{entry.scenario}</p>
         </div>
@@ -232,7 +267,7 @@ function SessionPage({ id, accountNumber, folders, refreshFolders }: SessionPage
               </div>
             </>
           ) : (
-            <a className="button" href="#/account">Create a private feed</a>
+            <a className="button button--secondary" href="#/account">Create a private feed</a>
           )}
           {status && <p className="form-status">{status}</p>}
         </div>
@@ -242,162 +277,16 @@ function SessionPage({ id, accountNumber, folders, refreshFolders }: SessionPage
   );
 }
 
-type FoldersStatus = 'idle' | 'loading' | 'ready' | 'error';
+/* ── Feeds (folders + account on one page) ─────────────────────── */
 
-interface FoldersPageProps {
-  accountNumber: string | null;
-  folders: Folder[];
-  refreshFolders: () => Promise<void>;
-}
-
-function FoldersPage({ accountNumber, folders, refreshFolders }: FoldersPageProps) {
-  const [name, setName] = useState('');
-  const [status, setStatus] = useState('');
-  async function createFolder(event: FormEvent): Promise<void> {
-    event.preventDefault();
-    if (!accountNumber || !name.trim()) return;
-    try {
-      await folderAction(accountNumber, 'create_folder', { name: name.trim() });
-      setName('');
-      await refreshFolders();
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Could not create the folder.');
-    }
-  }
-  if (!accountNumber) {
-    return (
-      <section className="page empty-state">
-        <p className="eyebrow">Folders become feeds</p>
-        <h1>Your sessions, already where you listen.</h1>
-        <p>Create a number-only account. Each folder gets one private RSS link.</p>
-        <a className="button" href="#/account">Create an account</a>
-      </section>
-    );
-  }
-  return (
-    <section className="page">
-      <p className="eyebrow">Private RSS</p>
-      <h1>Your folders</h1>
-      <p className="page__intro">
-        Only sessions you explicitly add appear here. Suggested-folder changes never alter an existing feed.
-      </p>
-      <form className="inline-form" onSubmit={createFolder}>
-        <label htmlFor="folder-name">New folder</label>
-        <input id="folder-name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Use a neutral name" />
-        <button className="button" type="submit">Create</button>
-      </form>
-      {status && <p className="form-status">{status}</p>}
-      <div className="folder-grid">
-        {folders.map((folder) => (
-          <a className="folder-card" href={`#/folders/${folder.id}`} key={folder.id}>
-            <span>{folder.item_count} {folder.item_count === 1 ? 'session' : 'sessions'}</span>
-            <h2>{folder.name}</h2>
-            <p>Open folder →</p>
-          </a>
-        ))}
-      </div>
-      <div className="suggested">
-        <p className="eyebrow">Possible future packs</p>
-        {SUGGESTED_FOLDERS.map((folder) => (
-          <div key={folder.name}><strong>{folder.name}</strong><span>{folder.detail}</span><em>Suggestion only</em></div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-interface FolderPageProps extends FoldersPageProps { id: string; foldersStatus: FoldersStatus }
-
-function FolderPage({ id, accountNumber, folders, refreshFolders, foldersStatus }: FolderPageProps) {
-  const folder = folders.find((candidate) => candidate.id === id);
-  const [status, setStatus] = useState('');
-  if (!accountNumber) return <FoldersPage accountNumber={null} folders={[]} refreshFolders={refreshFolders} />;
-  if (!folder) {
-    // Folders arrive asynchronously on a fresh page load — only claim the
-    // folder is missing once we actually know what the account contains.
-    if (foldersStatus === 'loading' || foldersStatus === 'idle') {
-      return <section className="page empty-state"><p className="eyebrow">Private folder</p><h1>Loading your folders…</h1></section>;
-    }
-    if (foldersStatus === 'error') {
-      return (
-        <section className="page empty-state">
-          <p className="eyebrow">Private folder</p>
-          <h1>Couldn’t load your folders.</h1>
-          <p>Check your connection and reload this page. Your account number is still saved on this device.</p>
-        </section>
-      );
-    }
-    return <NotFoundPage />;
-  }
-
-  async function removeItem(catalogId: string): Promise<void> {
-    try {
-      await folderAction(accountNumber!, 'remove_item', { folder_id: folder!.id, catalog_id: catalogId });
-      await refreshFolders();
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Could not remove the session.');
-    }
-  }
-
-  async function rotateToken(): Promise<void> {
-    if (!window.confirm('Replace this private feed link? Podcast apps using the old link will stop updating.')) return;
-    try {
-      await folderAction(accountNumber!, 'rotate_token', { folder_id: folder!.id });
-      await refreshFolders();
-      setStatus('Feed link rotated. Re-subscribe using the new link below.');
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Could not rotate the feed link.');
-    }
-  }
-
-  return (
-    <section className="page">
-      <a className="back-link" href="#/folders">← Folders</a>
-      <p className="eyebrow">Private folder</p>
-      <h1>{folder.name}</h1>
-      <p className="page__intro">
-        Use a neutral name: it appears in podcast apps and is visible to anyone holding the feed link.
-      </p>
-      {(folder.items ?? []).length ? (
-        <div className="folder-items">
-          {(folder.items ?? []).map((item) => {
-            const entry = getCatalogEntry(item.catalog_id);
-            return entry ? (
-              <div className="folder-item" key={item.catalog_id}>
-                <span>{item.position}</span>
-                <div><a href={`#/s/${entry.id}`}>{entry.title}</a><small>{entry.scenario}</small></div>
-                <button type="button" onClick={() => removeItem(item.catalog_id)}>Remove</button>
-              </div>
-            ) : null;
-          })}
-        </div>
-      ) : <p className="empty-copy">No sessions yet. Open any catalog session and add it here.</p>}
-      {status && <p className="form-status">{status}</p>}
-      <SubscribePanel token={folder.feed_token} />
-      <button className="text-button text-button--danger" type="button" onClick={rotateToken}>Rotate private feed link</button>
-    </section>
-  );
-}
-
-function SubscribePage({ token }: { token: string }) {
-  return (
-    <section className="page subscribe-page">
-      <a className="brand brand--center" href="#/"><span className="brand__mark">e</span><span>Eardium</span></a>
-      <SubscribePanel token={token} compact />
-      <p className="subscribe-page__foot">No account number is read or stored on this handoff page.</p>
-    </section>
-  );
-}
-
-interface AccountPageProps {
+interface AccountBlockProps {
   accountNumber: string | null;
   setAccountNumber: (value: string | null) => void;
   setFolders: (folders: Folder[]) => void;
 }
 
-function AccountPage({ accountNumber, setAccountNumber, setFolders }: AccountPageProps) {
+function AccountBlock({ accountNumber, setAccountNumber, setFolders }: AccountBlockProps) {
   const [input, setInput] = useState('');
-  const [email, setEmail] = useState('');
   const [status, setStatus] = useState('');
   const [createdNumber, setCreatedNumber] = useState<string | null>(null);
 
@@ -429,19 +318,6 @@ function AccountPage({ accountNumber, setAccountNumber, setFolders }: AccountPag
     }
   }
 
-  async function removeAccount(): Promise<void> {
-    if (!accountNumber || !window.confirm('Delete this account, every folder, and every feed link?')) return;
-    try {
-      await deleteAccount(accountNumber);
-      clearAccountNumber();
-      setAccountNumber(null);
-      setFolders([]);
-      setStatus('Account and feeds deleted.');
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Could not delete the account.');
-    }
-  }
-
   async function copyNumber(): Promise<void> {
     if (!accountNumber) return;
     try {
@@ -451,6 +327,133 @@ function AccountPage({ accountNumber, setAccountNumber, setFolders }: AccountPag
       setStatus('Copying failed — select and copy the number above manually.');
     }
   }
+
+  function logout(): void {
+    clearAccountNumber();
+    setAccountNumber(null);
+    setFolders([]);
+    setCreatedNumber(null);
+    setStatus('');
+  }
+
+  return (
+    <div className="block" id="account">
+      <div className="block__head">
+        <h2>Account</h2>
+        <p>The number is the credential. We store only a keyed lookup hash, never the number itself.</p>
+      </div>
+      {accountNumber ? (
+        <div className="credential">
+          <div>
+            <span>Your account number</span>
+            <strong>{formatAccountNumber(accountNumber)}</strong>
+          </div>
+          <div className="button-row">
+            <button className="button button--secondary" type="button" onClick={copyNumber}>Copy</button>
+            <button className="text-button" type="button" onClick={logout}>Log out on this device</button>
+          </div>
+        </div>
+      ) : (
+        <div className="account-grid">
+          <div className="account-card">
+            <h3>New here</h3>
+            <p>Generate a random number and one empty “My Sessions” folder.</p>
+            <button className="button" type="button" onClick={create}>Create account</button>
+          </div>
+          <form className="account-card" onSubmit={login}>
+            <h3>Restore folders</h3>
+            <div className="field">
+              <label htmlFor="account-number">16-digit account number</label>
+              <input
+                id="account-number"
+                inputMode="numeric"
+                autoComplete="off"
+                value={formatAccountNumber(input)}
+                onChange={(e) => setInput(normalizeAccountNumber(e.target.value))}
+                placeholder="0000 0000 0000 0000"
+              />
+            </div>
+            <button className="button button--secondary" type="submit">Restore</button>
+          </form>
+        </div>
+      )}
+      {createdNumber && (
+        <p className="notice">Shown once, right after creation. Losing this number means losing access to these folders.</p>
+      )}
+      {status && <p className="form-status">{status}</p>}
+    </div>
+  );
+}
+
+interface FoldersBlockProps {
+  accountNumber: string;
+  folders: Folder[];
+  foldersStatus: FoldersStatus;
+  refreshFolders: () => Promise<void>;
+}
+
+function FoldersBlock({ accountNumber, folders, foldersStatus, refreshFolders }: FoldersBlockProps) {
+  const [name, setName] = useState('');
+  const [status, setStatus] = useState('');
+
+  async function createFolder(event: FormEvent): Promise<void> {
+    event.preventDefault();
+    if (!name.trim()) return;
+    try {
+      await folderAction(accountNumber, 'create_folder', { name: name.trim() });
+      setName('');
+      setStatus('');
+      await refreshFolders();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not create the folder.');
+    }
+  }
+
+  return (
+    <div className="block" id="folders">
+      <div className="block__head">
+        <h2>Folders</h2>
+        <p>Only sessions you explicitly add appear in a feed. Names are visible to anyone holding the link.</p>
+      </div>
+      {foldersStatus === 'loading' || foldersStatus === 'idle' ? (
+        <p className="empty-copy">Loading your folders…</p>
+      ) : foldersStatus === 'error' ? (
+        <p className="empty-copy">Couldn’t load your folders. Check your connection and reload. Your account number is still saved on this device.</p>
+      ) : folders.length ? (
+        <ul className="rows">
+          {folders.map((folder) => (
+            <li key={folder.id}>
+              <a className="row row--folder" href={`#/folders/${folder.id}`}>
+                <span className="row__title">{folder.name}</span>
+                <span className="row__meta">{folder.item_count} {folder.item_count === 1 ? 'session' : 'sessions'}</span>
+                <span className="row__dur">Open →</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="empty-copy">No folders yet. Create one below.</p>
+      )}
+      <form className="inline-form" style={{ marginTop: 18 }} onSubmit={createFolder}>
+        <div className="field">
+          <label htmlFor="folder-name">New folder</label>
+          <input id="folder-name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Use a neutral name" />
+        </div>
+        <button className="button" type="submit">Create</button>
+      </form>
+      {status && <p className="form-status">{status}</p>}
+      <ul className="packs" aria-label="Folder ideas">
+        {SUGGESTED_FOLDERS.map((folder) => (
+          <li key={folder.name}><strong>{folder.name}</strong> — {folder.detail}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function WaitlistBlock({ last }: { last: boolean }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState('');
 
   async function waitlist(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -464,51 +467,212 @@ function AccountPage({ accountNumber, setAccountNumber, setFolders }: AccountPag
   }
 
   return (
-    <section className="page account-page">
-      <p className="eyebrow">Number-only account</p>
-      <h1>{accountNumber ? 'Your account' : 'Keep your feeds without giving us your identity.'}</h1>
-      <p className="page__intro">
-        The account number is the credential. We store only a keyed lookup hash, not the number itself.
-      </p>
-      {accountNumber ? (
-        <div className="credential-card">
-          <span>Your saved account number</span>
-          <strong>{formatAccountNumber(accountNumber)}</strong>
-          <div className="button-row">
-            <button className="button button--secondary" type="button" onClick={copyNumber}>Copy</button>
-            <button className="text-button" type="button" onClick={() => { clearAccountNumber(); setAccountNumber(null); setFolders([]); }}>Log out on this device</button>
-          </div>
+    <div className={last ? 'block block--end' : 'block'}>
+      <form className="waitlist" onSubmit={waitlist}>
+        <div>
+          <p className="eyebrow">Optional and separate</p>
+          <h2>Tell me when customisation arrives.</h2>
+          <p>
+            This email is not connected to your account, folders, or listening selections. One
+            confirmation link, then one message when it&rsquo;s ready &mdash; nothing else.{' '}
+            <a href="#/privacy">What we store and why</a>.
+          </p>
         </div>
-      ) : (
-        <div className="account-grid">
-          <div className="account-card">
-            <h2>New here</h2>
-            <p>Generate a random number and one empty “My Sessions” folder.</p>
-            <button className="button" type="button" onClick={create}>Create account</button>
+        <div>
+          <div className="inline-form">
+            <div className="field">
+              <label htmlFor="waitlist-email">Email</label>
+              <input id="waitlist-email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+            </div>
+            <button className="button button--secondary" type="submit">Send confirmation</button>
           </div>
-          <form className="account-card" onSubmit={login}>
-            <h2>Restore folders</h2>
-            <label htmlFor="account-number">16-digit account number</label>
-            <input id="account-number" inputMode="numeric" autoComplete="off" value={formatAccountNumber(input)} onChange={(e) => setInput(normalizeAccountNumber(e.target.value))} placeholder="0000 0000 0000 0000" />
-            <button className="button button--secondary" type="submit">Restore</button>
-          </form>
+          {status && <p className="form-status">{status}</p>}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+interface FeedsPageProps extends AccountBlockProps {
+  folders: Folder[];
+  foldersStatus: FoldersStatus;
+  refreshFolders: () => Promise<void>;
+}
+
+function FeedsPage({ accountNumber, setAccountNumber, setFolders, folders, foldersStatus, refreshFolders }: FeedsPageProps) {
+  const [status, setStatus] = useState('');
+
+  async function removeAccount(): Promise<void> {
+    if (!accountNumber || !window.confirm('Delete this account, every folder, and every feed link?')) return;
+    try {
+      await deleteAccount(accountNumber);
+      clearAccountNumber();
+      setAccountNumber(null);
+      setFolders([]);
+      setStatus('Account and feeds deleted.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not delete the account.');
+    }
+  }
+
+  return (
+    <section className="page">
+      <div className="page__head">
+        <p className="eyebrow">Private RSS</p>
+        <h1>{accountNumber ? 'Your feeds' : 'Feeds without an identity.'}</h1>
+        <p className="page__intro">
+          Each folder is one private podcast feed. A random 16-digit number restores your folders on
+          any device. No email is needed for any of it.
+        </p>
+      </div>
+      {accountNumber && (
+        <FoldersBlock
+          accountNumber={accountNumber}
+          folders={folders}
+          foldersStatus={foldersStatus}
+          refreshFolders={refreshFolders}
+        />
+      )}
+      <AccountBlock accountNumber={accountNumber} setAccountNumber={setAccountNumber} setFolders={setFolders} />
+      <WaitlistBlock last={!accountNumber} />
+      {accountNumber && (
+        <div className="block block--end">
+          <button className="text-button text-button--danger" type="button" onClick={removeAccount}>Delete account and all feeds</button>
+          {status && <p className="form-status">{status}</p>}
         </div>
       )}
-      {createdNumber && <p className="credential-warning">Shown here after creation so you can save it. Losing it means losing access.</p>}
-      {status && <p className="form-status">{status}</p>}
+      {!accountNumber && status && <p className="form-status">{status}</p>}
+    </section>
+  );
+}
 
-      <form className="waitlist" onSubmit={waitlist}>
-        <div><p className="eyebrow">Optional and separate</p><h2>Tell me when customisation arrives.</h2><p>This email is not connected to your account, folders, or listening selections. We send one confirmation link, then one message when it&rsquo;s ready &mdash; nothing else. <a href="#/privacy">What we store and why</a>.</p></div>
-        <div className="inline-form"><label htmlFor="waitlist-email">Email</label><input id="waitlist-email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /><button className="button" type="submit">Send confirmation</button></div>
-      </form>
-      {accountNumber && <button className="text-button text-button--danger" type="button" onClick={removeAccount}>Delete account and all feeds</button>}
+/* ── Single folder ─────────────────────────────────────────────── */
+
+interface FolderPageProps {
+  id: string;
+  accountNumber: string | null;
+  folders: Folder[];
+  foldersStatus: FoldersStatus;
+  refreshFolders: () => Promise<void>;
+}
+
+function FolderPage({ id, accountNumber, folders, foldersStatus, refreshFolders }: FolderPageProps) {
+  const folder = folders.find((candidate) => candidate.id === id);
+  const [status, setStatus] = useState('');
+
+  if (!accountNumber) {
+    return (
+      <section className="page empty">
+        <p className="eyebrow">Private folder</p>
+        <h1>This folder belongs to an account.</h1>
+        <p>Restore your account number to open it.</p>
+        <a className="button" href="#/account">Open account</a>
+      </section>
+    );
+  }
+  if (!folder) {
+    // Folders arrive asynchronously on a fresh page load — only claim the
+    // folder is missing once we actually know what the account contains.
+    if (foldersStatus === 'loading' || foldersStatus === 'idle') {
+      return <section className="page empty"><p className="eyebrow">Private folder</p><h1>Loading your folders…</h1></section>;
+    }
+    if (foldersStatus === 'error') {
+      return (
+        <section className="page empty">
+          <p className="eyebrow">Private folder</p>
+          <h1>Couldn’t load your folders.</h1>
+          <p>Check your connection and reload this page. Your account number is still saved on this device.</p>
+        </section>
+      );
+    }
+    return <NotFoundPage />;
+  }
+
+  async function removeItem(catalogId: string): Promise<void> {
+    try {
+      await folderAction(accountNumber!, 'remove_item', { folder_id: folder!.id, catalog_id: catalogId });
+      await refreshFolders();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not remove the session.');
+    }
+  }
+
+  async function rotateToken(): Promise<void> {
+    if (!window.confirm('Replace this private feed link? Podcast apps using the old link will stop updating.')) return;
+    try {
+      await folderAction(accountNumber!, 'rotate_token', { folder_id: folder!.id });
+      await refreshFolders();
+      setStatus('Feed link rotated. Re-subscribe using the new link below.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not rotate the feed link.');
+    }
+  }
+
+  const items = folder.items ?? [];
+  return (
+    <section className="page">
+      <div className="page__head">
+        <p className="crumbs">
+          <a href="#/folders">Feeds</a><span aria-hidden="true">/</span><span>{folder.name}</span>
+        </p>
+        <h1>{folder.name}</h1>
+        <p className="page__intro">
+          {items.length} {items.length === 1 ? 'session' : 'sessions'}. The name appears in podcast apps
+          and is visible to anyone holding the feed link.
+        </p>
+      </div>
+      {items.length ? (
+        <ol className="rows">
+          {items.map((item) => {
+            const entry = getCatalogEntry(item.catalog_id);
+            return entry ? (
+              <li className="row row--item" key={item.catalog_id}>
+                <span>{String(item.position).padStart(2, '0')}</span>
+                <div className="row__stack">
+                  <a href={`#/s/${entry.id}`}>{entry.title}</a>
+                  <small>{entry.scenario} · {minutes(entry)}</small>
+                </div>
+                <button className="text-button" type="button" onClick={() => removeItem(item.catalog_id)}>Remove</button>
+              </li>
+            ) : null;
+          })}
+        </ol>
+      ) : (
+        <p className="empty-copy">No sessions yet. Open any catalog session and add it here.</p>
+      )}
+      {status && <p className="form-status">{status}</p>}
+      <SubscribePanel token={folder.feed_token} />
+      <p style={{ marginTop: 24 }}>
+        <button className="text-button text-button--danger" type="button" onClick={rotateToken}>Rotate private feed link</button>
+      </p>
+    </section>
+  );
+}
+
+/* ── Handoff + misc ────────────────────────────────────────────── */
+
+function SubscribePage({ token }: { token: string }) {
+  return (
+    <section className="subscribe-page">
+      <a className="brand brand--center" href="#/"><span className="brand__mark" aria-hidden="true" /><span>Eardium</span></a>
+      <SubscribePanel token={token} compact />
+      <p className="subscribe-page__foot">No account number is read or stored on this handoff page.</p>
     </section>
   );
 }
 
 function NotFoundPage() {
-  return <section className="page empty-state"><p className="eyebrow">404</p><h1>That page is not here.</h1><a className="button" href="#/">Return to catalog</a></section>;
+  return (
+    <section className="page empty">
+      <p className="eyebrow">404</p>
+      <h1>That page is not here.</h1>
+      <p>The link may be old, or the session may have been removed from the catalog.</p>
+      <a className="button button--secondary" href="#/">Return to catalog</a>
+    </section>
+  );
 }
+
+/* ── App ───────────────────────────────────────────────────────── */
 
 export function App() {
   const route = useRoute();
@@ -567,14 +731,27 @@ export function App() {
   }, [accountNumber, handoffOnly]);
 
   const page = useMemo(() => {
+    const feeds = (
+      <FeedsPage
+        accountNumber={accountNumber}
+        setAccountNumber={setAccountNumber}
+        setFolders={setFolders}
+        folders={folders}
+        foldersStatus={foldersStatus}
+        refreshFolders={refreshFolders}
+      />
+    );
     switch (route.name) {
-      case 'home': return <HomePage />;
-      case 'category': return <CategoryPage categoryId={route.category} />;
+      case 'home': return <HomePage accountNumber={accountNumber} />;
+      case 'category':
+        return route.category in CATEGORY_CONTENT
+          ? <HomePage category={route.category as Category} accountNumber={accountNumber} />
+          : <NotFoundPage />;
       case 'session': return <SessionPage id={route.id} accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} />;
-      case 'folders': return <FoldersPage accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} />;
-      case 'folder': return <FolderPage id={route.id} accountNumber={accountNumber} folders={folders} refreshFolders={refreshFolders} foldersStatus={foldersStatus} />;
+      case 'folders': return feeds;
+      case 'account': return feeds;
+      case 'folder': return <FolderPage id={route.id} accountNumber={accountNumber} folders={folders} foldersStatus={foldersStatus} refreshFolders={refreshFolders} />;
       case 'subscribe': return <SubscribePage token={route.token} />;
-      case 'account': return <AccountPage accountNumber={accountNumber} setAccountNumber={setAccountNumber} setFolders={setFolders} />;
       case 'impressum': return <ImpressumPage />;
       case 'privacy': return <PrivacyPage />;
       default: return <NotFoundPage />;
@@ -583,26 +760,9 @@ export function App() {
 
   return (
     <div className="site-shell">
-      {!handoffOnly && <PageHeader accountNumber={accountNumber} />}
+      {!handoffOnly && <PageHeader route={route} accountNumber={accountNumber} />}
       <main>{page}</main>
-      {handoffOnly && (
-        <footer className="footer--minimal">
-          <span className="footer__legal">
-            <a href="#/impressum">Impressum</a>
-            <a href="#/privacy">Privacy</a>
-          </span>
-        </footer>
-      )}
-      {!handoffOnly && (
-        <footer>
-          <span>Eardium · rehearsal for the moment ahead</span>
-          <span>Private feeds are capability links. Keep them private.</span>
-          <span className="footer__legal">
-            <a href="#/impressum">Impressum</a>
-            <a href="#/privacy">Privacy</a>
-          </span>
-        </footer>
-      )}
+      <PageFooter />
     </div>
   );
 }
